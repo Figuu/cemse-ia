@@ -9,9 +9,9 @@ async function main() {
 
   // Get environment variables
   const superAdminEmail =
-    process.env.SEED_SUPER_ADMIN_EMAIL || "superadmin@cemse-ia.com";
+    process.env.SEED_SUPER_ADMIN_EMAIL || "admin@admin.com";
   const superAdminPassword =
-    process.env.SEED_SUPER_ADMIN_PASSWORD || "SuperAdmin123!";
+    process.env.SEED_SUPER_ADMIN_PASSWORD || "12345678";
   const superAdminName = process.env.SEED_SUPER_ADMIN_NAME || "Super Admin";
 
   try {
