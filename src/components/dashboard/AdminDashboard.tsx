@@ -16,6 +16,8 @@ import Link from "next/link";
 
 interface User {
   id: string;
+  name: string;
+  email: string;
   createdAt: string;
   role: string;
   forcePasswordChange: boolean;
@@ -44,29 +46,43 @@ export function AdminDashboard() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch("/api/users?limit=1000");
-        const data = await response.json();
+        // Fetch all users with pagination
+        let allUsers: User[] = [];
+        let page = 1;
+        let hasMore = true;
 
-        if (response.ok && data.users) {
-          const users = data.users;
+        while (hasMore) {
+          const response = await fetch(`/api/users?limit=100&page=${page}`);
+          const data = await response.json();
+
+          if (response.ok && data.users && data.users.length > 0) {
+            allUsers = [...allUsers, ...data.users];
+            hasMore = page < (data.pagination?.totalPages || 1);
+            page++;
+          } else {
+            hasMore = false;
+          }
+        }
+
+        if (allUsers.length > 0 || page === 1) {
           const now = new Date();
           const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
           const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
           const stats: DashboardStats = {
-            totalUsers: users.length,
-            newUsersThisMonth: users.filter(
+            totalUsers: allUsers.length,
+            newUsersThisMonth: allUsers.filter(
               (u: User) => new Date(u.createdAt) >= monthAgo
             ).length,
-            newUsersThisWeek: users.filter(
+            newUsersThisWeek: allUsers.filter(
               (u: User) => new Date(u.createdAt) >= weekAgo
             ).length,
-            activeUsers: users.filter((u: User) => !u.forcePasswordChange)
+            activeUsers: allUsers.filter((u: User) => !u.forcePasswordChange)
               .length,
-            admins: users.filter(
+            admins: allUsers.filter(
               (u: User) => u.role === "ADMIN" || u.role === "SUPER_ADMIN"
             ).length,
-            regularUsers: users.filter((u: User) => u.role === "USER").length,
+            regularUsers: allUsers.filter((u: User) => u.role === "USER").length,
           };
 
           setStats(stats);

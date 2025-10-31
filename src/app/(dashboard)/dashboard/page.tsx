@@ -38,10 +38,26 @@ export default function DashboardPage() {
 
       setLoadingSchool(true);
       try {
-        const response = await fetch(`/api/schools/${profile.schoolId}`);
-        const data = await response.json();
-        if (response.ok) {
-          setSchoolData(data);
+        // Fetch school data and metrics in parallel
+        const [schoolResponse, metricsResponse] = await Promise.all([
+          fetch(`/api/schools/${profile.schoolId}`),
+          fetch(`/api/schools/${profile.schoolId}/metrics`).catch(() => null), // Metrics are optional
+        ]);
+
+        const schoolData = await schoolResponse.json();
+        if (schoolResponse.ok) {
+          // Add metrics if available
+          if (metricsResponse) {
+            try {
+              const metricsData = await metricsResponse.json();
+              if (metricsResponse.ok && metricsData) {
+                schoolData.metrics = metricsData;
+              }
+            } catch (e) {
+              // Ignore metrics errors
+            }
+          }
+          setSchoolData(schoolData);
         }
       } catch (error) {
         console.error("Error fetching school data:", error);
