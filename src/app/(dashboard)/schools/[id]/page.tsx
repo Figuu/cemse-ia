@@ -63,6 +63,9 @@ interface School {
   district: string | null;
   phone: string | null;
   email: string | null;
+  isDeleted: boolean;
+  deletedAt: Date | null;
+  deletedBy: string | null;
   createdAt: Date;
   updatedAt: Date;
   users: User[];
@@ -71,6 +74,18 @@ interface School {
   };
 }
 
+// Type alias compatible with UserModal's UserData interface
+type UserData = {
+  id: string;
+  email: string;
+  name: string;
+  phone?: string;
+  department?: string;
+  role: Role;
+  schoolId?: string | null;
+  forcePasswordChange?: boolean;
+};
+
 interface User {
   id: string;
   name: string;
@@ -78,9 +93,9 @@ interface User {
   role: Role;
   pfpUrl: string | null;
   phone: string | null;
-  department: string | null;
-  forcePasswordChange: boolean;
-  schoolId: string | null;
+  department?: string;
+  schoolId?: string | null;
+  forcePasswordChange?: boolean;
 }
 
 export default function SchoolDetailPage({
@@ -95,7 +110,7 @@ export default function SchoolDetailPage({
   const [loading, setLoading] = useState(true);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [userModalOpen, setUserModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<UserData | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -139,7 +154,18 @@ export default function SchoolDetailPage({
   };
 
   const handleEditUser = (user: User) => {
-    setEditingUser(user);
+    // Convert User to UserData format for the modal
+    const userData: UserData = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      phone: user.phone || undefined,
+      department: user.department,
+      role: user.role,
+      schoolId: user.schoolId,
+      forcePasswordChange: user.forcePasswordChange,
+    };
+    setEditingUser(userData);
     setUserModalOpen(true);
   };
 

@@ -8,7 +8,7 @@ import { Role } from "@prisma/client";
  */
 export interface AuthResult {
   user: { id: string; email: string };
-  profile: { id: string; role: Role; authUserId: string };
+  profile: { id: string; role: Role; authUserId: string; schoolId?: string | null };
 }
 
 /**
@@ -43,6 +43,7 @@ export async function requireAuth(): Promise<
           id: currentUser.profile.id,
           role: currentUser.profile.role,
           authUserId: currentUser.profile.authUserId,
+          schoolId: currentUser.profile.schoolId,
         },
       },
     };

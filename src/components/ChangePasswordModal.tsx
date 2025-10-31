@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Lock, X } from "lucide-react";
+import { Eye, EyeOff, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ChangePasswordModalProps {

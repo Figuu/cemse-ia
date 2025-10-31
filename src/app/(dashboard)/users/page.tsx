@@ -52,17 +52,29 @@ interface School {
   type: SchoolType;
 }
 
+// Type alias compatible with UserModal's UserData interface
+type UserData = {
+  id: string;
+  email: string;
+  name: string;
+  phone?: string;
+  department?: string;
+  role: Role;
+  schoolId?: string | null;
+  forcePasswordChange?: boolean;
+};
+
 interface User {
   id: string;
   authUserId: string;
   email: string;
   name: string;
-  phone: string | null;
-  department: string | null;
+  phone?: string;
+  department?: string;
   pfpUrl: string | null;
   role: Role;
-  forcePasswordChange: boolean;
-  schoolId: string | null;
+  forcePasswordChange?: boolean;
+  schoolId?: string | null;
   school: School | null;
   createdAt: Date;
   updatedAt: Date;
@@ -79,7 +91,7 @@ export default function UsersPage() {
   const [schoolFilter, setSchoolFilter] = useState("all");
   const [schools, setSchools] = useState<School[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<UserData | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -156,7 +168,18 @@ export default function UsersPage() {
   };
 
   const handleEdit = (user: User) => {
-    setEditingUser(user);
+    // Convert User to UserData format for the modal
+    const userData: UserData = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      phone: user.phone,
+      department: user.department,
+      role: user.role,
+      schoolId: user.schoolId,
+      forcePasswordChange: user.forcePasswordChange,
+    };
+    setEditingUser(userData);
     setModalOpen(true);
   };
 

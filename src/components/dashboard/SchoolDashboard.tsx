@@ -16,7 +16,6 @@ import {
   UserCheck,
   GraduationCap,
   ChevronRight,
-  Building,
   MapPin,
   Phone,
   Mail,
@@ -82,7 +81,7 @@ export function SchoolDashboard({ profile, school, users }: SchoolDashboardProps
               {isDirector ? "Gestiona tu colegio" : "Vista de tu colegio"}
             </p>
           </div>
-          <Badge className={getRoleBadgeColor(profile.role)} className="text-lg px-4 py-2">
+          <Badge className={`${getRoleBadgeColor(profile.role)} text-lg px-4 py-2`}>
             {translateRole(profile.role)}
           </Badge>
         </div>
