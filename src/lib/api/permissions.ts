@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { hasRole, isAdmin, isSuperAdmin } from "@/lib/permissions";
+import { hasRole, isAdmin, isSuperAdmin, isDirector } from "@/lib/permissions";
 import { Role } from "@prisma/client";
 
 /**
@@ -94,6 +94,28 @@ export async function requireAdmin(
       success: false,
       response: NextResponse.json(
         { error: "Solo administradores pueden realizar esta acción" },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return { success: true };
+}
+
+/**
+ * Check if user is admin or director (ADMIN, SUPER_ADMIN, or DIRECTOR)
+ */
+export async function requireAdminOrDirector(
+  userId: string
+): Promise<{ success: true } | { success: false; response: NextResponse }> {
+  const isAdminUser = await isAdmin(userId);
+  const isDirectorUser = await isDirector(userId);
+
+  if (!isAdminUser && !isDirectorUser) {
+    return {
+      success: false,
+      response: NextResponse.json(
+        { error: "Solo administradores y directores pueden realizar esta acción" },
         { status: 403 }
       ),
     };
@@ -214,6 +236,28 @@ export async function requireAuthAndSuperAdmin(): Promise<
 
   if (!superAdminResult.success) {
     return superAdminResult;
+  }
+
+  return authResult;
+}
+
+/**
+ * Combined function: require auth and admin or director check
+ */
+export async function requireAuthAndAdminOrDirector(): Promise<
+  | { success: true; data: AuthResult }
+  | { success: false; response: NextResponse }
+> {
+  const authResult = await requireAuth();
+
+  if (!authResult.success) {
+    return authResult;
+  }
+
+  const adminOrDirectorResult = await requireAdminOrDirector(authResult.data.user.id);
+
+  if (!adminOrDirectorResult.success) {
+    return adminOrDirectorResult;
   }
 
   return authResult;

@@ -113,6 +113,42 @@ export async function canManageSchool(userId: string, schoolId?: string): Promis
 }
 
 /**
+ * Check if user can view a school (ADMIN, SUPER_ADMIN, DIRECTOR, or PROFESOR of that school)
+ */
+export async function canViewSchool(userId: string, schoolId?: string): Promise<boolean> {
+  try {
+    const profile = await prisma.profile.findUnique({
+      where: {
+        authUserId: userId,
+      },
+      select: {
+        role: true,
+        schoolId: true,
+      },
+    });
+
+    if (!profile) {
+      return false;
+    }
+
+    // Super admins and admins can view all schools
+    if (profile.role === "SUPER_ADMIN" || profile.role === "ADMIN") {
+      return true;
+    }
+
+    // Directors and Profesors can view their own school
+    if (schoolId && (profile.role === "DIRECTOR" || profile.role === "PROFESOR")) {
+      return profile.schoolId === schoolId;
+    }
+
+    return false;
+  } catch (error) {
+    console.error("Error checking school view permission:", error);
+    return false;
+  }
+}
+
+/**
  * Check if user is super admin
  */
 export async function isSuperAdmin(userId: string): Promise<boolean> {
