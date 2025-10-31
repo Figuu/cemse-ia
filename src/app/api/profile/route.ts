@@ -11,12 +11,53 @@ export async function GET() {
       return authResult.response;
     }
 
-    const { profile } = extractAuthData(authResult);
+    const { profile: authProfile } = extractAuthData(authResult);
+
+    // Get full profile from database
+    const fullProfile = await prisma.profile.findUnique({
+      where: {
+        id: authProfile.id,
+      },
+      select: {
+        id: true,
+        authUserId: true,
+        email: true,
+        name: true,
+        phone: true,
+        department: true,
+        pfpUrl: true,
+        biography: true,
+        role: true,
+        forcePasswordChange: true,
+        schoolId: true,
+        school: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            type: true,
+            address: true,
+            district: true,
+          },
+        },
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!fullProfile) {
+      return NextResponse.json(
+        {
+          error: "Perfil no encontrado",
+        },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json(
       {
         success: true,
-        profile,
+        profile: fullProfile,
       },
       { status: 200 }
     );
@@ -70,6 +111,17 @@ export async function PATCH(request: NextRequest) {
         biography: true,
         role: true,
         forcePasswordChange: true,
+        schoolId: true,
+        school: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            type: true,
+            address: true,
+            district: true,
+          },
+        },
         createdAt: true,
         updatedAt: true,
       },

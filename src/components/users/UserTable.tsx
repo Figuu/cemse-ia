@@ -38,6 +38,7 @@ export function UserTable({ users, loading, onDelete }: UserTableProps) {
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
   const getInitials = (name: string) => {
+    if (!name) return "??";
     return name
       .split(" ")
       .map(n => n[0])

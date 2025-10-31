@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useSidebar } from "@/context/SidebarContext";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, User, X } from "lucide-react";
+import { Home, Users, User, X, School, FileText, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef } from "react";
@@ -50,12 +50,52 @@ export function Sidebar() {
     },
   ];
 
-  // Add admin navigation items if user has admin role
+  // Add school management navigation for ADMIN and SUPER_ADMIN only
   if (profile && (profile.role === "ADMIN" || profile.role === "SUPER_ADMIN")) {
+    navItems.push({
+      title: "Colegios",
+      href: "/schools",
+      icon: School,
+      roles: ["ADMIN", "SUPER_ADMIN"],
+    });
+  }
+
+  // Add user management navigation for ADMIN, SUPER_ADMIN, and DIRECTOR
+  if (profile && (profile.role === "ADMIN" || profile.role === "SUPER_ADMIN" || profile.role === "DIRECTOR")) {
     navItems.push({
       title: "Usuarios",
       href: "/users",
       icon: Users,
+      roles: ["ADMIN", "SUPER_ADMIN", "DIRECTOR"],
+    });
+  }
+
+  // Add school info navigation for DIRECTOR and PROFESOR (their own school)
+  if (profile && profile.schoolId && (profile.role === "DIRECTOR" || profile.role === "PROFESOR")) {
+    navItems.push({
+      title: "Mi Colegio",
+      href: `/schools/${profile.schoolId}`,
+      icon: School,
+      roles: ["DIRECTOR", "PROFESOR"],
+    });
+  }
+
+  // Add cases navigation for DIRECTOR, PROFESOR, ADMIN, and SUPER_ADMIN
+  if (profile && ["DIRECTOR", "PROFESOR", "ADMIN", "SUPER_ADMIN"].includes(profile.role)) {
+    navItems.push({
+      title: "Reportes",
+      href: "/cases",
+      icon: FileText,
+      roles: ["DIRECTOR", "PROFESOR", "ADMIN", "SUPER_ADMIN"],
+    });
+  }
+
+  // Add audit logs navigation for ADMIN and SUPER_ADMIN only
+  if (profile && (profile.role === "ADMIN" || profile.role === "SUPER_ADMIN")) {
+    navItems.push({
+      title: "Auditoría",
+      href: "/audit-logs",
+      icon: History,
       roles: ["ADMIN", "SUPER_ADMIN"],
     });
   }

@@ -3,16 +3,12 @@
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { SidebarProvider } from "@/context/SidebarContext";
-import { ChangePasswordModal } from "@/components/ChangePasswordModal";
-import { useAuth } from "@/context/AuthContext";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { profile } = useAuth();
-
   return (
     <SidebarProvider>
       <div className="flex min-h-screen bg-background">
@@ -31,9 +27,6 @@ export default function DashboardLayout({
           </main>
         </div>
       </div>
-      {profile?.forcePasswordChange && (
-        <ChangePasswordModal open={true} />
-      )}
     </SidebarProvider>
   );
 }

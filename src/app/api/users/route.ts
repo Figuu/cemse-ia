@@ -27,7 +27,8 @@ export async function GET(request: NextRequest) {
         name?: { contains: string; mode: "insensitive" };
         email?: { contains: string; mode: "insensitive" };
       }>;
-      role?: "USER" | "ADMIN" | "SUPER_ADMIN";
+      role?: any;
+      schoolId?: string;
     } = {};
 
     if (search) {
@@ -38,7 +39,13 @@ export async function GET(request: NextRequest) {
     }
 
     if (role) {
-      where.role = role as "USER" | "ADMIN" | "SUPER_ADMIN";
+      where.role = role;
+    }
+
+    // Filter by school if provided
+    const schoolId = searchParams.get("schoolId");
+    if (schoolId) {
+      where.schoolId = schoolId;
     }
 
     // Get total count
@@ -63,6 +70,15 @@ export async function GET(request: NextRequest) {
         biography: true,
         role: true,
         forcePasswordChange: true,
+        schoolId: true,
+        school: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            type: true,
+          },
+        },
         createdAt: true,
         updatedAt: true,
       },
@@ -110,19 +126,58 @@ export async function POST(request: NextRequest) {
     const validatedData = createUserSchema.parse(body);
 
     // Check if user can create this role
-    const targetRole = validatedData.role as "USER" | "ADMIN" | "SUPER_ADMIN";
+    const targetRole = validatedData.role;
 
     // Super Admin can create any role
-    if (currentProfile.role !== "SUPER_ADMIN") {
-      // Admin can only create USER role
-      if (targetRole !== "USER") {
+    if (currentProfile.role === "SUPER_ADMIN") {
+      // Can create any role
+    } else if (currentProfile.role === "ADMIN") {
+      // Admin can create DIRECTOR, PROFESOR, and USER roles
+      if (!["DIRECTOR", "PROFESOR", "USER"].includes(targetRole)) {
         return NextResponse.json(
           {
-            error: "Solo puedes crear usuarios con rol USER",
+            error: "Solo puedes crear usuarios con rol DIRECTOR, PROFESOR o USER",
           },
           { status: 403 }
         );
       }
+    } else if (currentProfile.role === "DIRECTOR") {
+      // Director can only create PROFESOR role
+      if (targetRole !== "PROFESOR") {
+        return NextResponse.json(
+          {
+            error: "Solo puedes crear usuarios con rol PROFESOR",
+          },
+          { status: 403 }
+        );
+      }
+
+      // Director must assign to their own school
+      if (validatedData.schoolId !== currentProfile.schoolId) {
+        return NextResponse.json(
+          {
+            error: "Solo puedes crear profesores en tu colegio",
+          },
+          { status: 403 }
+        );
+      }
+    } else {
+      return NextResponse.json(
+        {
+          error: "No tienes permiso para crear usuarios",
+        },
+        { status: 403 }
+      );
+    }
+
+    // Validate school assignment for DIRECTOR and PROFESOR roles
+    if (["DIRECTOR", "PROFESOR"].includes(targetRole) && !validatedData.schoolId) {
+      return NextResponse.json(
+        {
+          error: "Debes asignar un colegio para los roles de Director y Profesor",
+        },
+        { status: 400 }
+      );
     }
 
     // Generate random password
@@ -162,7 +217,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update profile with role and forcePasswordChange if needed
+    // Update profile with role, schoolId, and forcePasswordChange if needed
     const updatedProfile = await prisma.profile.update({
       where: {
         authUserId: authData.user.id,
@@ -170,6 +225,7 @@ export async function POST(request: NextRequest) {
       data: {
         role: targetRole,
         forcePasswordChange: validatedData.forcePasswordChange || false,
+        schoolId: validatedData.schoolId || null,
       },
       select: {
         id: true,
@@ -182,6 +238,15 @@ export async function POST(request: NextRequest) {
         biography: true,
         role: true,
         forcePasswordChange: true,
+        schoolId: true,
+        school: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            type: true,
+          },
+        },
         createdAt: true,
         updatedAt: true,
       },

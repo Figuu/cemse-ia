@@ -35,6 +35,7 @@ export default function ProfilePictureUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getInitials = (name: string) => {
+    if (!name) return "??";
     return name
       .split(" ")
       .map(n => n[0])

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { Role, SchoolType } from "@prisma/client";
 import {
   Card,
   CardContent,
@@ -29,14 +30,27 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Plus, Edit, Trash2, MoreVertical } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Search, Plus, Edit, Trash2, Loader2, School as SchoolIcon } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import { UserModal } from "@/components/users/UserModal";
+import { translateRole, getRoleBadgeColor, translateSchoolType } from "@/lib/translations";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+interface School {
+  id: string;
+  name: string;
+  code: string;
+  type: SchoolType;
+}
 
 interface User {
   id: string;
@@ -46,8 +60,10 @@ interface User {
   phone: string | null;
   department: string | null;
   pfpUrl: string | null;
-  role: string;
+  role: Role;
   forcePasswordChange: boolean;
+  schoolId: string | null;
+  school: School | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -55,78 +71,111 @@ interface User {
 export default function UsersPage() {
   const { profile } = useAuth();
   const router = useRouter();
-  const { toast } = useToast();
 
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
+  const [schoolFilter, setSchoolFilter] = useState("all");
+  const [schools, setSchools] = useState<School[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  // Redirect if not admin
+  const canManage = profile?.role === "ADMIN" || profile?.role === "SUPER_ADMIN" || profile?.role === "DIRECTOR";
+
+  // Redirect if not authorized
   useEffect(() => {
-    if (profile && profile.role !== "ADMIN" && profile.role !== "SUPER_ADMIN") {
+    if (profile && !canManage) {
       router.push("/dashboard");
     }
-  }, [profile, router]);
+  }, [profile, router, canManage]);
 
-  // Fetch users
+  // Fetch schools for filter
   useEffect(() => {
-    const fetchUsers = async () => {
-      if (
-        !profile ||
-        (profile.role !== "ADMIN" && profile.role !== "SUPER_ADMIN")
-      ) {
-        return;
-      }
-
+    const fetchSchools = async () => {
       try {
-        setLoading(true);
-        const params = new URLSearchParams({
-          search,
-          role: roleFilter === "all" ? "" : roleFilter,
-          page: page.toString(),
-          limit: "10",
-        });
-
-        const response = await fetch(`/api/users?${params.toString()}`);
+        const response = await fetch("/api/schools/list");
         const data = await response.json();
-
         if (response.ok) {
-          setUsers(data.users);
-          setTotalPages(data.pagination.totalPages);
-          setTotal(data.pagination.total);
-        } else {
-          toast({
-            title: "Error",
-            description: data.error || "Error al obtener los usuarios",
-            variant: "destructive",
-          });
+          setSchools(data || []);
         }
       } catch (error) {
-        console.error("Fetch users error:", error);
-        toast({
-          title: "Error",
-          description: "Error al obtener los usuarios",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
+        console.error("Error fetching schools:", error);
       }
     };
 
-    fetchUsers();
-  }, [profile, search, roleFilter, page, toast]);
+    fetchSchools();
+  }, []);
 
-  const handleDelete = async (userId: string) => {
-    if (!confirm("¿Estás seguro de que deseas eliminar este usuario?")) {
+  // Fetch users
+  const fetchUsers = useCallback(async () => {
+    if (!profile || !canManage) {
       return;
     }
 
     try {
-      const response = await fetch(`/api/users/${userId}`, {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (search) params.append("search", search);
+      if (roleFilter && roleFilter !== "all") params.append("role", roleFilter);
+      if (schoolFilter && schoolFilter !== "all") params.append("schoolId", schoolFilter);
+      params.append("limit", "100");
+
+      const response = await fetch(`/api/users?${params.toString()}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setUsers(data.users);
+      } else {
+        toast({
+          title: data.error || "Error al obtener los usuarios",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Fetch users error:", error);
+      toast({
+        title: "Error al obtener los usuarios",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [profile, search, roleFilter, schoolFilter, canManage]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  const handleCreate = () => {
+    setEditingUser(null);
+    setModalOpen(true);
+  };
+
+  const handleEdit = (user: User) => {
+    setEditingUser(user);
+    setModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setModalOpen(false);
+    setEditingUser(null);
+  };
+
+  const handleDelete = (user: User) => {
+    setDeletingUser(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingUser) return;
+
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/users/${deletingUser.id}`, {
         method: "DELETE",
       });
 
@@ -134,232 +183,236 @@ export default function UsersPage() {
 
       if (response.ok) {
         toast({
-          title: "Éxito",
-          description: "Usuario eliminado exitosamente",
+          title: "Usuario eliminado exitosamente",
         });
-        // Refresh users
-        const params = new URLSearchParams({
-          search,
-          role: roleFilter === "all" ? "" : roleFilter,
-          page: page.toString(),
-          limit: "10",
-        });
-        const refreshResponse = await fetch(`/api/users?${params.toString()}`);
-        const refreshData = await refreshResponse.json();
-        if (refreshResponse.ok) {
-          setUsers(refreshData.users);
-          setTotalPages(refreshData.pagination.totalPages);
-          setTotal(refreshData.pagination.total);
-        }
+        fetchUsers();
       } else {
         toast({
-          title: "Error",
-          description: data.error || "Error al eliminar el usuario",
+          title: data.error || "Error al eliminar el usuario",
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error("Delete user error:", error);
       toast({
-        title: "Error",
-        description: "Error al eliminar el usuario",
+        title: "Error al eliminar el usuario",
         variant: "destructive",
       });
+    } finally {
+      setDeleting(false);
+      setDeleteDialogOpen(false);
+      setDeletingUser(null);
     }
-  };
-
-  const getRoleBadgeVariant = (role: string) => {
-    if (role === "SUPER_ADMIN") return "destructive";
-    if (role === "ADMIN") return "default";
-    return "secondary";
-  };
-
-  const getRoleLabel = (role: string) => {
-    if (role === "SUPER_ADMIN") return "Super Admin";
-    if (role === "ADMIN") return "Admin";
-    return "Usuario";
   };
 
   const getInitials = (name: string) => {
     return name
       .split(" ")
-      .map(n => n[0])
+      .map((n) => n[0])
       .join("")
       .toUpperCase()
       .slice(0, 2);
   };
 
-  if (
-    !profile ||
-    (profile.role !== "ADMIN" && profile.role !== "SUPER_ADMIN")
-  ) {
+  if (!profile || !canManage) {
     return null;
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Usuarios</h2>
+          <p className="text-muted-foreground">
+            Gestiona los usuarios del sistema
+          </p>
+        </div>
+        <Button onClick={handleCreate} className="gap-2">
+          <Plus className="h-4 w-4" />
+          <span className="hidden sm:inline">Nuevo Usuario</span>
+        </Button>
+      </div>
+
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Gestión de Usuarios</CardTitle>
-              <CardDescription>
-                Administra los usuarios del sistema
-              </CardDescription>
-            </div>
-            <Button onClick={() => router.push("/users/create")}>
-              <Plus className="mr-2 h-4 w-4" />
-              Crear Usuario
-            </Button>
-          </div>
+          <CardTitle>Filtros</CardTitle>
+          <CardDescription>Busca y filtra usuarios</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="mb-6 flex gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por nombre o email..."
                 value={search}
-                onChange={e => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
+                onChange={(e) => setSearch(e.target.value)}
                 className="pl-10"
               />
             </div>
-            <Select
-              value={roleFilter}
-              onValueChange={value => {
-                setRoleFilter(value);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="w-[180px]">
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filtrar por rol" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos los roles</SelectItem>
+                <SelectItem value="DIRECTOR">Director</SelectItem>
+                <SelectItem value="PROFESOR">Profesor</SelectItem>
                 <SelectItem value="USER">Usuario</SelectItem>
-                <SelectItem value="ADMIN">Admin</SelectItem>
-                <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                {(profile.role === "ADMIN" || profile.role === "SUPER_ADMIN") && (
+                  <>
+                    <SelectItem value="ADMIN">Administrador</SelectItem>
+                    <SelectItem value="SUPER_ADMIN">Super Administrador</SelectItem>
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+            <Select value={schoolFilter} onValueChange={setSchoolFilter}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Filtrar por colegio" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los colegios</SelectItem>
+                {schools.map((school) => (
+                  <SelectItem key={school.id} value={school.id}>
+                    {school.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
+        </CardContent>
+      </Card>
 
+      <Card>
+        <CardContent className="p-0">
           {loading ? (
-            <div className="py-8 text-center">
-              <p className="text-muted-foreground">Cargando usuarios...</p>
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : users.length === 0 ? (
-            <div className="py-8 text-center">
-              <p className="text-muted-foreground">
-                No se encontraron usuarios
-              </p>
+            <div className="text-center p-8 text-muted-foreground">
+              No se encontraron usuarios
             </div>
           ) : (
-            <>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Usuario</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Departamento</TableHead>
-                      <TableHead>Rol</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead className="text-right">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.map(user => (
-                      <TableRow key={user.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar>
-                              <AvatarImage src={user.pfpUrl || undefined} />
-                              <AvatarFallback>
-                                {getInitials(user.name)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="font-medium">{user.name}</span>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Usuario</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Rol</TableHead>
+                    <TableHead>Colegio</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarImage src={user.pfpUrl || undefined} />
+                            <AvatarFallback>
+                              {getInitials(user.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{user.name}</p>
+                            {user.department && (
+                              <p className="text-sm text-muted-foreground">
+                                {user.department}
+                              </p>
+                            )}
                           </div>
-                        </TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.department || "-"}</TableCell>
-                        <TableCell>
-                          <Badge variant={getRoleBadgeVariant(user.role)}>
-                            {getRoleLabel(user.role)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {user.forcePasswordChange ? (
-                            <Badge variant="destructive">
-                              Cambio requerido
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary">Activo</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => router.push(`/users/${user.id}`)}
-                              >
-                                <Edit className="mr-2 h-4 w-4" />
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDelete(user.id)}
-                                className="text-destructive"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Eliminar
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              <div className="mt-4 flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Total: {total} usuarios
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(page - 1)}
-                    disabled={page === 1}
-                  >
-                    Anterior
-                  </Button>
-                  <span className="px-4 text-sm text-muted-foreground">
-                    Página {page} de {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage(page + 1)}
-                    disabled={page >= totalPages}
-                  >
-                    Siguiente
-                  </Button>
-                </div>
-              </div>
-            </>
+                        </div>
+                      </TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Badge className={getRoleBadgeColor(user.role)}>
+                          {translateRole(user.role)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {user.school ? (
+                          <div className="flex items-center gap-2">
+                            <SchoolIcon className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                              <p className="text-sm">{user.school.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {translateSchoolType(user.school.type)}
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {user.forcePasswordChange ? (
+                          <Badge variant="destructive">Cambio requerido</Badge>
+                        ) : (
+                          <Badge variant="secondary">Activo</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(user)}
+                            title="Editar"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(user)}
+                            title="Eliminar"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
+
+      <UserModal
+        open={modalOpen}
+        onOpenChange={handleModalClose}
+        user={editingUser}
+        onSuccess={fetchUsers}
+      />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará permanentemente al usuario{" "}
+              <strong>{deletingUser?.name}</strong>. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

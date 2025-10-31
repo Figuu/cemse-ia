@@ -36,6 +36,7 @@ interface UserDashboardProps {
 
 export function UserDashboard({ profile }: UserDashboardProps) {
   const getInitials = (name: string) => {
+    if (!name) return "??";
     return name
       .split(" ")
       .map(n => n[0])
@@ -53,15 +54,29 @@ export function UserDashboard({ profile }: UserDashboardProps) {
     { field: "biography", value: profile.biography, required: false },
   ];
 
-  const completedFields = profileFields.filter(f => f.value).length;
-  const totalFields =
-    profileFields.filter(f => !f.required).length +
-    profileFields.filter(f => f.required).length;
+  // Helper function to check if a field is filled
+  const isFieldFilled = (value: string | null | undefined): boolean => {
+    if (!value) return false;
+    return typeof value === "string" && value.trim() !== "";
+  };
+
+  const requiredFields = profileFields.filter(f => f.required);
+  const optionalFields = profileFields.filter(f => !f.required);
+
+  const completedRequiredFields = requiredFields.filter(f => isFieldFilled(f.value)).length;
+  const allRequiredFieldsCompleted = completedRequiredFields === requiredFields.length;
+
+  const completedFields = profileFields.filter(f => isFieldFilled(f.value)).length;
+  const totalFields = profileFields.length;
   const profileCompleteness = Math.round((completedFields / totalFields) * 100);
 
-  const missingFields = profileFields
-    .filter(f => !f.value && f.required)
-    .map(f => f.field);
+  // Only show missing fields if required fields are complete, otherwise show required missing fields
+  const missingFields = allRequiredFieldsCompleted
+    ? optionalFields.filter(f => !isFieldFilled(f.value)).map(f => f.field)
+    : requiredFields.filter(f => !isFieldFilled(f.value)).map(f => f.field);
+
+  // Don't show the completeness card if all required fields are complete and no optional fields are missing
+  const shouldShowCompletenessCard = !allRequiredFieldsCompleted || missingFields.length > 0;
 
   return (
     <div className="space-y-6">
@@ -84,52 +99,62 @@ export function UserDashboard({ profile }: UserDashboardProps) {
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Profile Completeness Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Completitud del Perfil</CardTitle>
-            <CardDescription>
-              Mejora tu perfil para una mejor experiencia
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Progreso</span>
-                <span className="font-semibold">{profileCompleteness}%</span>
+        {shouldShowCompletenessCard && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Completitud del Perfil</CardTitle>
+              <CardDescription>
+                {allRequiredFieldsCompleted
+                  ? "Completa información adicional para mejorar tu perfil"
+                  : "Completa los campos requeridos para continuar"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Progreso</span>
+                  <span className="font-semibold">{profileCompleteness}%</span>
+                </div>
+                <Progress value={profileCompleteness} className="h-2" />
               </div>
-              <Progress value={profileCompleteness} className="h-2" />
-            </div>
 
-            {profileCompleteness < 100 && (
-              <div className="rounded-lg border bg-muted p-3">
-                <p className="mb-2 text-sm font-medium">Campos pendientes:</p>
-                <ul className="space-y-1 text-sm text-muted-foreground">
-                  {missingFields.map(field => (
-                    <li key={field} className="flex items-center gap-2">
-                      <ChevronRight className="h-3 w-3" />
-                      <span className="capitalize">
-                        {field === "name"
-                          ? "Nombre"
-                          : field === "email"
-                            ? "Email"
-                            : field}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+              {missingFields.length > 0 && (
+                <div className="rounded-lg border bg-muted p-3">
+                  <p className="mb-2 text-sm font-medium">Campos pendientes:</p>
+                  <ul className="space-y-1 text-sm text-muted-foreground">
+                    {missingFields.map(field => (
+                      <li key={field} className="flex items-center gap-2">
+                        <ChevronRight className="h-3 w-3" />
+                        <span className="capitalize">
+                          {field === "name"
+                            ? "Nombre"
+                            : field === "email"
+                              ? "Email"
+                              : field === "phone"
+                                ? "Teléfono"
+                                : field === "department"
+                                  ? "Departamento"
+                                  : field === "biography"
+                                    ? "Biografía"
+                                    : field}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
-            <Button asChild className="w-full">
-              <Link href="/profile">
-                {profileCompleteness === 100
-                  ? "Actualizar Perfil"
-                  : "Completar Perfil"}
-                <ChevronRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+              <Button asChild className="w-full">
+                <Link href="/profile">
+                  {allRequiredFieldsCompleted
+                    ? "Agregar Información"
+                    : "Completar Perfil"}
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Quick Actions Card */}
         <Card>

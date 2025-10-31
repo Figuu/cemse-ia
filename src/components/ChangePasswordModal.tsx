@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
-  Dialog,
-  DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
@@ -13,11 +12,42 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Lock } from "lucide-react";
+import { Eye, EyeOff, Lock, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ChangePasswordModalProps {
   open: boolean;
 }
+
+const BlurredOverlay = ({ className, ...props }: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>) => (
+  <DialogPrimitive.Overlay
+    className={cn(
+      "fixed inset-0 z-50 bg-background/10 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      className
+    )}
+    {...props}
+  />
+);
+
+const BlurredDialogContent = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
+>(({ className, children, ...props }, ref) => (
+  <DialogPrimitive.Portal>
+    <BlurredOverlay />
+    <DialogPrimitive.Content
+      ref={ref}
+      className={cn(
+        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 sm:rounded-lg",
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </DialogPrimitive.Content>
+  </DialogPrimitive.Portal>
+));
+BlurredDialogContent.displayName = DialogPrimitive.Content.displayName;
 
 export function ChangePasswordModal({ open }: ChangePasswordModalProps) {
   const [newPassword, setNewPassword] = useState("");
@@ -74,8 +104,8 @@ export function ChangePasswordModal({ open }: ChangePasswordModalProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
+    <DialogPrimitive.Root open={open} onOpenChange={() => {}}>
+      <BlurredDialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <div className="flex items-center gap-2">
             <Lock className="h-5 w-5 text-primary" />
@@ -158,7 +188,7 @@ export function ChangePasswordModal({ open }: ChangePasswordModalProps) {
             {isLoading ? "Cambiando contraseña..." : "Cambiar contraseña"}
           </Button>
         </form>
-      </DialogContent>
-    </Dialog>
+      </BlurredDialogContent>
+    </DialogPrimitive.Root>
   );
 }

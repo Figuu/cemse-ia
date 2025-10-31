@@ -19,6 +19,7 @@ interface ProfileViewProps {
 
 export default function ProfileView({ profile }: ProfileViewProps) {
   const getInitials = (name: string) => {
+    if (!name) return "??";
     return name
       .split(" ")
       .map(n => n[0])
