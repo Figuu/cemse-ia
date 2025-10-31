@@ -12,26 +12,27 @@ datasource db {
 }
 
 model School {
-  id          String      @id @default(uuid())
-  name        String
-  code        String      @unique
-  type        SchoolType
-  address     String?
-  district    String?
-  phone       String?
-  email       String?
+  id       String     @id @default(uuid())
+  name     String
+  code     String     @unique
+  type     SchoolType
+  address  String?
+  district String?
+  phone    String?
+  email    String?
 
   // Soft delete
-  isDeleted   Boolean     @default(false)
-  deletedAt   DateTime?
-  deletedBy   String?
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+  deletedBy String?
 
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  users       Profile[]
-  cases       Case[]
+  users        Profile[]
+  cases        Case[]
+  libraryItems LibraryItem[]
 
   @@index([code])
   @@index([type])
@@ -39,32 +40,34 @@ model School {
 }
 
 model Profile {
-  id                  String   @id @default(uuid())
-  authUserId          String   @unique // Supabase auth.users.id
-  email               String   @unique
+  id                  String  @id @default(uuid())
+  authUserId          String  @unique // Supabase auth.users.id
+  email               String  @unique
   name                String
   phone               String?
   department          String?
   pfpUrl              String?
-  biography           String?  @db.Text
-  role                Role     @default(USER)
-  forcePasswordChange Boolean  @default(false)
+  biography           String? @db.Text
+  role                Role    @default(USER)
+  forcePasswordChange Boolean @default(false)
 
   // School relation
-  schoolId            String?
-  school              School?  @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  schoolId String?
+  school   School? @relation(fields: [schoolId], references: [id], onDelete: SetNull)
 
   // Soft delete
-  isDeleted           Boolean  @default(false)
-  deletedAt           DateTime?
-  deletedBy           String?
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+  deletedBy String?
 
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  casesCreated        Case[]       @relation("CaseCreator")
-  auditLogs           AuditLog[]
+  casesCreated         Case[]        @relation("CaseCreator")
+  auditLogs            AuditLog[]
+  libraryItemsCreated  LibraryItem[] @relation("LibraryItemCreator")
+  libraryItemsApproved LibraryItem[] @relation("LibraryItemApprover")
 
   @@index([email])
   @@index([role])
@@ -73,50 +76,50 @@ model Profile {
 }
 
 model Case {
-  id                    String         @id @default(uuid())
-  caseNumber            String         @unique // Auto-generated case number
+  id         String @id @default(uuid())
+  caseNumber String @unique // Auto-generated case number
 
   // Incident details
-  incidentDate          DateTime
-  incidentTime          String         // Time as string (HH:MM format)
-  violenceType          ViolenceType
-  description           String         @db.Text
-  location              String         // Where it happened
-  customLocation        String?        // If location is "OTHER"
+  incidentDate   DateTime
+  incidentTime   String // Time as string (HH:MM format)
+  violenceType   ViolenceType
+  description    String       @db.Text
+  location       String // Where it happened
+  customLocation String? // If location is "OTHER"
 
   // Victim information
-  victimIsAnonymous     Boolean        @default(false)
-  victimName            String
-  victimAge             Int?
-  victimGrade           String?
+  victimIsAnonymous Boolean @default(false)
+  victimName        String
+  victimAge         Int?
+  victimGrade       String?
 
   // Aggressor information
-  aggressorName         String
-  aggressorDescription  String?        @db.Text
-  relationshipToVictim  String?
+  aggressorName        String
+  aggressorDescription String? @db.Text
+  relationshipToVictim String?
 
   // Witnesses and evidence
-  witnesses             String?        @db.Text
-  evidenceFiles         Json?          // Array of file URLs and metadata
+  witnesses     String? @db.Text
+  evidenceFiles Json? // Array of file URLs and metadata
 
   // Status and tracking
-  status                CaseStatus     @default(OPEN)
-  priority              CasePriority   @default(MEDIUM)
+  status   CaseStatus   @default(OPEN)
+  priority CasePriority @default(MEDIUM)
 
   // Relations
-  schoolId              String
-  school                School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  schoolId String
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
-  createdBy             String
-  creator               Profile        @relation("CaseCreator", fields: [createdBy], references: [id])
+  createdBy String
+  creator   Profile @relation("CaseCreator", fields: [createdBy], references: [id])
 
   // Soft delete
-  isDeleted             Boolean        @default(false)
-  deletedAt             DateTime?
-  deletedBy             String?
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+  deletedBy String?
 
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([schoolId])
   @@index([status])
@@ -127,27 +130,65 @@ model Case {
 }
 
 model AuditLog {
-  id            String       @id @default(uuid())
-  action        String       // e.g., "USER_CREATED", "CASE_UPDATED", etc.
-  entityType    String       // "User", "School", "Case", etc.
-  entityId      String       // ID of the affected entity
-  description   String?      // Human-readable description
-  changes       Json?        // Before/after data for updates
-  metadata      Json?        // Additional context
-  ipAddress     String?
-  userAgent     String?
+  id          String  @id @default(uuid())
+  action      String // e.g., "USER_CREATED", "CASE_UPDATED", etc.
+  entityType  String // "User", "School", "Case", etc.
+  entityId    String // ID of the affected entity
+  description String? // Human-readable description
+  changes     Json? // Before/after data for updates
+  metadata    Json? // Additional context
+  ipAddress   String?
+  userAgent   String?
 
   // User who performed the action
-  userId        String
-  user          Profile      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt     DateTime     @default(now())
+  createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([action])
   @@index([entityType])
   @@index([entityId])
   @@index([createdAt])
+}
+
+model LibraryItem {
+  id          String            @id @default(uuid())
+  title       String
+  description String?           @db.Text
+  fileName    String
+  fileUrl     String
+  fileSize    BigInt
+  mimeType    String
+  visibility  LibraryVisibility @default(PRIVATE)
+
+  // Approval workflow (only for director-uploaded public items)
+  isApproved Boolean   @default(false)
+  approvedAt DateTime?
+  approvedBy String?
+  approver   Profile?  @relation("LibraryItemApprover", fields: [approvedBy], references: [id], onDelete: SetNull)
+
+  // Relations
+  createdBy String
+  creator   Profile @relation("LibraryItemCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  schoolId String?
+  school   School? @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+
+  // Soft delete
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+  deletedBy String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdBy])
+  @@index([schoolId])
+  @@index([visibility])
+  @@index([isApproved])
+  @@index([isDeleted])
 }
 
 enum Role {
@@ -165,28 +206,33 @@ enum SchoolType {
 }
 
 enum ViolenceType {
-  PHYSICAL           // Física
-  VERBAL             // Verbal
-  PSYCHOLOGICAL      // Psicológica
-  SEXUAL             // Sexual
-  CYBERBULLYING      // Ciberacoso
-  DISCRIMINATION     // Discriminación
-  PROPERTY_DAMAGE    // Daño a propiedad
-  OTHER              // Otro
+  PHYSICAL // Física
+  VERBAL // Verbal
+  PSYCHOLOGICAL // Psicológica
+  SEXUAL // Sexual
+  CYBERBULLYING // Ciberacoso
+  DISCRIMINATION // Discriminación
+  PROPERTY_DAMAGE // Daño a propiedad
+  OTHER // Otro
 }
 
 enum CaseStatus {
-  OPEN               // Abierto
-  IN_PROGRESS        // En progreso
-  UNDER_REVIEW       // En revisión
-  RESOLVED           // Resuelto
-  CLOSED             // Cerrado
-  ARCHIVED           // Archivado
+  OPEN // Abierto
+  IN_PROGRESS // En progreso
+  UNDER_REVIEW // En revisión
+  RESOLVED // Resuelto
+  CLOSED // Cerrado
+  ARCHIVED // Archivado
 }
 
 enum CasePriority {
-  LOW                // Baja
-  MEDIUM             // Media
-  HIGH               // Alta
-  URGENT             // Urgente
+  LOW // Baja
+  MEDIUM // Media
+  HIGH // Alta
+  URGENT // Urgente
+}
+
+enum LibraryVisibility {
+  PUBLIC // Visible to everyone (requires approval if uploaded by director)
+  PRIVATE // Visible only to school teachers and admins
 }
