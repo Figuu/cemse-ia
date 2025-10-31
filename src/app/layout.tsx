@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CEMSE-IA - Sistema de Gestión",
+  title: "Alerta Escolar - Sistema de Gestión",
   description: "Sistema de gestión con autenticación y autorización",
 };
 

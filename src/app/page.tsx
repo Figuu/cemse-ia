@@ -17,7 +17,7 @@ export default function Home() {
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-2">
             <Shield className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">CEMSE-IA</span>
+            <span className="text-xl font-bold">Alerta Escolar</span>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/sign-in">
@@ -248,7 +248,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t bg-muted py-8">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© 2024 CEMSE-IA. Todos los derechos reservados.</p>
+          <p>© 2024 Alerta Escolar. Todos los derechos reservados.</p>
         </div>
       </footer>
     </div>

@@ -150,7 +150,7 @@ export function Sidebar() {
               "hidden md:flex items-center gap-2 transition-opacity duration-300",
               isCollapsed ? "opacity-0 w-0" : "opacity-100"
             )}>
-              <h1 className="text-xl font-bold whitespace-nowrap">CEMSE-IA</h1>
+              <h1 className="text-xl font-bold whitespace-nowrap">Alerta Escolar</h1>
             </div>
 
             {/* Mobile close button */}

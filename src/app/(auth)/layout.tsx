@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Autenticación | CEMSE-IA",
-  description: "Página de autenticación de CEMSE-IA",
+  title: "Autenticación | Alerta Escolar",
+  description: "Página de autenticación de Alerta Escolar",
 };
 
 export default function AuthLayout({
