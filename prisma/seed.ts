@@ -79,7 +79,7 @@ async function main() {
 
     // 1. Create Super Admin
     console.log("\n👑 Creating Super Admin...");
-    const superAdminProfile = await createUser(
+    await createUser(
       superAdminEmail,
       superAdminPassword,
       superAdminName,
