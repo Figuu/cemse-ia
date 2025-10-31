@@ -29,7 +29,11 @@ import {
   getSchoolTypeBadgeColor,
   translateRole,
   getRoleBadgeColor,
+  translateViolenceType,
+  translateCaseStatus,
+  translateCasePriority,
 } from "@/lib/translations";
+import { CaseMetricsCharts } from "@/components/metrics/CaseMetricsCharts";
 import { toast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
@@ -42,6 +46,13 @@ import {
   Building2,
   Edit,
   Trash2,
+  FileText,
+  AlertCircle,
+  TrendingUp,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  BarChart3,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -114,6 +125,8 @@ export default function SchoolDetailPage({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [metrics, setMetrics] = useState<any>(null);
+  const [loadingMetrics, setLoadingMetrics] = useState(true);
 
   const canManage =
     profile?.role === "ADMIN" ||
@@ -144,8 +157,25 @@ export default function SchoolDetailPage({
     }
   };
 
+  const fetchMetrics = async () => {
+    try {
+      setLoadingMetrics(true);
+      const response = await fetch(`/api/schools/${resolvedParams.id}/metrics`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setMetrics(data);
+      }
+    } catch (error) {
+      console.error("Error fetching metrics:", error);
+    } finally {
+      setLoadingMetrics(false);
+    }
+  };
+
   useEffect(() => {
     fetchSchool();
+    fetchMetrics();
   }, [resolvedParams.id]);
 
   const handleCreateUser = () => {
@@ -314,7 +344,7 @@ export default function SchoolDetailPage({
 
         <Card>
           <CardHeader>
-            <CardTitle>Estadísticas</CardTitle>
+            <CardTitle>Estadísticas de Usuarios</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -336,6 +366,153 @@ export default function SchoolDetailPage({
           </CardContent>
         </Card>
       </div>
+
+      {/* Case Metrics */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Métricas de Reportes
+          </CardTitle>
+          <CardDescription>
+            Estadísticas de casos reportados en este colegio
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loadingMetrics ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : metrics ? (
+            <div className="space-y-6">
+              {/* Summary Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <FileText className="h-4 w-4" />
+                    Total
+                  </div>
+                  <p className="text-2xl font-bold">{metrics.totalCases}</p>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <AlertCircle className="h-4 w-4 text-red-500" />
+                    Abiertos
+                  </div>
+                  <p className="text-2xl font-bold text-red-600">{metrics.openCases}</p>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4 text-yellow-500" />
+                    En Progreso
+                  </div>
+                  <p className="text-2xl font-bold text-yellow-600">{metrics.inProgressCases}</p>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    Resueltos
+                  </div>
+                  <p className="text-2xl font-bold text-green-600">{metrics.resolvedCases}</p>
+                </div>
+              </div>
+
+              {/* By Status */}
+              {metrics.casesByStatus && metrics.casesByStatus.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold mb-3">Por Estado</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {metrics.casesByStatus.map((item: any) => (
+                      <div key={item.status} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <span className="text-sm">{translateCaseStatus(item.status)}</span>
+                        <span className="text-sm font-bold">{item.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* By Violence Type */}
+              {metrics.casesByViolenceType && metrics.casesByViolenceType.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold mb-3">Por Tipo de Violencia</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {metrics.casesByViolenceType.map((item: any) => (
+                      <div key={item.type} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <span className="text-sm">{translateViolenceType(item.type)}</span>
+                        <span className="text-sm font-bold">{item.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* By Priority */}
+              {metrics.casesByPriority && metrics.casesByPriority.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-semibold mb-3">Por Prioridad</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {metrics.casesByPriority.map((item: any) => (
+                      <div key={item.priority} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <span className="text-sm">{translateCasePriority(item.priority)}</span>
+                        <span className="text-sm font-bold">{item.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Recent Cases */}
+              {metrics.recentCases !== undefined && (
+                <div className="pt-4 border-t">
+                  <div className="flex items-center gap-2 text-sm">
+                    <TrendingUp className="h-4 w-4 text-blue-500" />
+                    <span className="text-muted-foreground">Reportes en los últimos 30 días:</span>
+                    <span className="font-bold">{metrics.recentCases}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center p-4">
+              No se pudieron cargar las métricas
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Charts Section */}
+      {metrics && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Gráficas de Reportes
+            </CardTitle>
+            <CardDescription>
+              Visualización gráfica de las métricas de reportes
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CaseMetricsCharts
+              casesByStatus={metrics.casesByStatus}
+              casesByViolenceType={metrics.casesByViolenceType}
+              casesByPriority={metrics.casesByPriority}
+              casesOverTime={metrics.casesOverTime}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {!loadingMetrics && !metrics && (
+        <Card>
+          <CardContent className="p-8">
+            <p className="text-sm text-muted-foreground text-center">
+              No se pudieron cargar las métricas
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

@@ -23,9 +23,29 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SchoolModal } from "@/components/schools/SchoolModal";
-import { translateSchoolType, getSchoolTypeBadgeColor } from "@/lib/translations";
+import {
+  translateSchoolType,
+  getSchoolTypeBadgeColor,
+  translateViolenceType,
+  translateCaseStatus,
+  translateCasePriority,
+} from "@/lib/translations";
+import { CaseMetricsCharts } from "@/components/metrics/CaseMetricsCharts";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Search, Pencil, Trash2, Users, Loader2 } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Pencil,
+  Trash2,
+  Users,
+  Loader2,
+  FileText,
+  AlertCircle,
+  TrendingUp,
+  CheckCircle2,
+  Clock,
+  BarChart3,
+} from "lucide-react";
 import Link from "next/link";
 import {
   AlertDialog,
@@ -57,6 +77,17 @@ export default function SchoolsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingSchool, setDeletingSchool] = useState<SchoolWithCount | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [metrics, setMetrics] = useState<any>(null);
+  const [loadingMetrics, setLoadingMetrics] = useState(false);
+  const [metricsFilters, setMetricsFilters] = useState({
+    schoolId: "all",
+    violenceType: "all",
+    status: "all",
+    priority: "all",
+    startDate: "",
+    endDate: "",
+  });
+  const [allSchools, setAllSchools] = useState<SchoolWithCount[]>([]);
 
   const canManage = profile?.role === "ADMIN" || profile?.role === "SUPER_ADMIN";
 
@@ -86,9 +117,67 @@ export default function SchoolsPage() {
     }
   }, [search, typeFilter]);
 
+  const fetchMetrics = useCallback(async () => {
+    if (!canManage) return; // Only admins can see metrics
+
+    try {
+      setLoadingMetrics(true);
+      const params = new URLSearchParams();
+      if (metricsFilters.schoolId && metricsFilters.schoolId !== "all") {
+        params.append("schoolId", metricsFilters.schoolId);
+      }
+      if (metricsFilters.violenceType && metricsFilters.violenceType !== "all") {
+        params.append("violenceType", metricsFilters.violenceType);
+      }
+      if (metricsFilters.status && metricsFilters.status !== "all") {
+        params.append("status", metricsFilters.status);
+      }
+      if (metricsFilters.priority && metricsFilters.priority !== "all") {
+        params.append("priority", metricsFilters.priority);
+      }
+      if (metricsFilters.startDate) params.append("startDate", metricsFilters.startDate);
+      if (metricsFilters.endDate) params.append("endDate", metricsFilters.endDate);
+
+      const response = await fetch(`/api/cases/metrics?${params}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setMetrics(data);
+      }
+    } catch (error) {
+      console.error("Error fetching metrics:", error);
+    } finally {
+      setLoadingMetrics(false);
+    }
+  }, [canManage, metricsFilters]);
+
+  const fetchAllSchools = useCallback(async () => {
+    if (!canManage) return;
+    try {
+      const response = await fetch("/api/schools/list");
+      const data = await response.json();
+      if (response.ok) {
+        // The API returns an array directly, not an object with schools property
+        setAllSchools(Array.isArray(data) ? data : data.schools || []);
+      }
+    } catch (error) {
+      console.error("Error fetching all schools:", error);
+    }
+  }, [canManage]);
+
   useEffect(() => {
     fetchSchools();
-  }, [fetchSchools]);
+    if (canManage) {
+      fetchAllSchools();
+      fetchMetrics();
+    }
+  }, [fetchSchools, canManage]);
+
+  useEffect(() => {
+    if (canManage) {
+      fetchMetrics();
+    }
+  }, [fetchMetrics, canManage]);
 
   const handleEdit = (school: School) => {
     setEditingSchool(school);
@@ -190,6 +279,284 @@ export default function SchoolsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Metrics Section - Only for Admins */}
+      {canManage && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Métricas Generales de Reportes
+            </CardTitle>
+            <CardDescription>
+              Estadísticas de todos los reportes del sistema
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Colegio</label>
+                <Select
+                  value={metricsFilters.schoolId || "all"}
+                  onValueChange={(value) =>
+                    setMetricsFilters({ ...metricsFilters, schoolId: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos los colegios" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los colegios</SelectItem>
+                    {allSchools.map((school) => (
+                      <SelectItem key={school.id} value={school.id}>
+                        {school.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Tipo de Violencia</label>
+                <Select
+                  value={metricsFilters.violenceType || "all"}
+                  onValueChange={(value) =>
+                    setMetricsFilters({ ...metricsFilters, violenceType: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos los tipos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los tipos</SelectItem>
+                    <SelectItem value="PHYSICAL">Física</SelectItem>
+                    <SelectItem value="VERBAL">Verbal</SelectItem>
+                    <SelectItem value="PSYCHOLOGICAL">Psicológica</SelectItem>
+                    <SelectItem value="SEXUAL">Sexual</SelectItem>
+                    <SelectItem value="CYBERBULLYING">Ciberacoso</SelectItem>
+                    <SelectItem value="DISCRIMINATION">Discriminación</SelectItem>
+                    <SelectItem value="PROPERTY_DAMAGE">Daño a Propiedad</SelectItem>
+                    <SelectItem value="OTHER">Otro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Estado</label>
+                <Select
+                  value={metricsFilters.status || "all"}
+                  onValueChange={(value) =>
+                    setMetricsFilters({ ...metricsFilters, status: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos los estados" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos los estados</SelectItem>
+                    <SelectItem value="OPEN">Abierto</SelectItem>
+                    <SelectItem value="IN_PROGRESS">En Progreso</SelectItem>
+                    <SelectItem value="UNDER_REVIEW">En Revisión</SelectItem>
+                    <SelectItem value="RESOLVED">Resuelto</SelectItem>
+                    <SelectItem value="CLOSED">Cerrado</SelectItem>
+                    <SelectItem value="ARCHIVED">Archivado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Prioridad</label>
+                <Select
+                  value={metricsFilters.priority || "all"}
+                  onValueChange={(value) =>
+                    setMetricsFilters({ ...metricsFilters, priority: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas las prioridades" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las prioridades</SelectItem>
+                    <SelectItem value="LOW">Baja</SelectItem>
+                    <SelectItem value="MEDIUM">Media</SelectItem>
+                    <SelectItem value="HIGH">Alta</SelectItem>
+                    <SelectItem value="URGENT">Urgente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Fecha Inicio</label>
+                <Input
+                  type="date"
+                  value={metricsFilters.startDate}
+                  onChange={(e) =>
+                    setMetricsFilters({ ...metricsFilters, startDate: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Fecha Fin</label>
+                <Input
+                  type="date"
+                  value={metricsFilters.endDate}
+                  onChange={(e) =>
+                    setMetricsFilters({ ...metricsFilters, endDate: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+
+            {/* Metrics Display */}
+            {loadingMetrics ? (
+              <div className="flex items-center justify-center p-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : metrics ? (
+              <div className="space-y-6">
+                {/* Summary Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <FileText className="h-4 w-4" />
+                      Total
+                    </div>
+                    <p className="text-2xl font-bold">{metrics.totalCases}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <AlertCircle className="h-4 w-4 text-red-500" />
+                      Abiertos
+                    </div>
+                    <p className="text-2xl font-bold text-red-600">{metrics.openCases}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Clock className="h-4 w-4 text-yellow-500" />
+                      En Progreso
+                    </div>
+                    <p className="text-2xl font-bold text-yellow-600">{metrics.inProgressCases}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      Resueltos
+                    </div>
+                    <p className="text-2xl font-bold text-green-600">{metrics.resolvedCases}</p>
+                  </div>
+                </div>
+
+                {/* By School */}
+                {metrics.casesBySchool && metrics.casesBySchool.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3">Por Colegio</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {metrics.casesBySchool.slice(0, 10).map((item: any) => (
+                        <div
+                          key={item.schoolId}
+                          className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                        >
+                          <div>
+                            <span className="text-sm font-medium">{item.schoolName}</span>
+                            {item.schoolCode && (
+                              <span className="text-xs text-muted-foreground ml-2">
+                                ({item.schoolCode})
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-sm font-bold">{item.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* By Status */}
+                {metrics.casesByStatus && metrics.casesByStatus.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3">Por Estado</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {metrics.casesByStatus.map((item: any) => (
+                        <div
+                          key={item.status}
+                          className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                        >
+                          <span className="text-sm">{translateCaseStatus(item.status)}</span>
+                          <span className="text-sm font-bold">{item.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* By Violence Type */}
+                {metrics.casesByViolenceType && metrics.casesByViolenceType.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3">Por Tipo de Violencia</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {metrics.casesByViolenceType.map((item: any) => (
+                        <div
+                          key={item.type}
+                          className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                        >
+                          <span className="text-sm">{translateViolenceType(item.type)}</span>
+                          <span className="text-sm font-bold">{item.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* By Priority */}
+                {metrics.casesByPriority && metrics.casesByPriority.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3">Por Prioridad</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {metrics.casesByPriority.map((item: any) => (
+                        <div
+                          key={item.priority}
+                          className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                        >
+                          <span className="text-sm">{translateCasePriority(item.priority)}</span>
+                          <span className="text-sm font-bold">{item.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recent Cases */}
+                {metrics.recentCases !== undefined && (
+                  <div className="pt-4 border-t">
+                    <div className="flex items-center gap-2 text-sm">
+                      <TrendingUp className="h-4 w-4 text-blue-500" />
+                      <span className="text-muted-foreground">Reportes en los últimos 30 días:</span>
+                      <span className="font-bold">{metrics.recentCases}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center p-4">
+                No se pudieron cargar las métricas
+              </p>
+            )}
+
+            {/* Charts Section */}
+            {metrics && (
+              <div className="pt-6 border-t space-y-6">
+                <div>
+                  <h4 className="text-lg font-semibold mb-4">Visualización Gráfica</h4>
+                  <CaseMetricsCharts
+                    casesByStatus={metrics.casesByStatus}
+                    casesByViolenceType={metrics.casesByViolenceType}
+                    casesByPriority={metrics.casesByPriority}
+                    casesBySchool={metrics.casesBySchool}
+                    casesOverTime={metrics.casesOverTime}
+                  />
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="p-0">

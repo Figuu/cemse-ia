@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma/client";
 import { updateSchoolSchema } from "@/lib/validations";
 import { requireAuthAndAdmin } from "@/lib/api/permissions";
 import { getSession } from "@/lib/auth";
-import { canManageSchool } from "@/lib/permissions";
+import { canViewSchool } from "@/lib/permissions";
 import { logUpdate, logDelete } from "@/lib/audit";
 
 /**
@@ -26,8 +26,8 @@ export async function GET(
 
     const { id } = await params;
 
-    // Check if user can access this school
-    const canAccess = await canManageSchool(session.user.id, id);
+    // Check if user can view this school
+    const canAccess = await canViewSchool(session.user.id, id);
 
     if (!canAccess) {
       return NextResponse.json(
