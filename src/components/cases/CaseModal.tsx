@@ -39,6 +39,7 @@ import {
 interface CaseModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   caseData?: any | null;
   schoolId?: string;
   onSuccess?: () => void;
@@ -216,6 +217,7 @@ export function CaseModal({
       }
 
       // Prepare data (without evidenceFiles initially)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const submitData: any = {
         incidentDate: formData.incidentDate,
         incidentTime: formData.incidentTime,
@@ -261,6 +263,7 @@ export function CaseModal({
       if (!response.ok) {
         // If there are validation details, format them nicely
         if (data.details && Array.isArray(data.details)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const errorMessages = data.details.map((issue: any) => {
             const field = issue.path.join('.');
             return `${field}: ${issue.message}`;

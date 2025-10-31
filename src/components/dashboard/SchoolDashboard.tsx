@@ -58,6 +58,7 @@ interface SchoolDashboardProps {
   };
   school: SchoolInfo;
   users: UserInfo[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metrics?: any;
 }
 

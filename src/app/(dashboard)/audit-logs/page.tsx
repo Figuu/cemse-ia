@@ -36,8 +36,8 @@ interface AuditLog {
   entityType: string;
   entityId: string;
   description: string | null;
-  changes: any;
-  metadata: any;
+  changes: Record<string, { from?: unknown; to?: unknown }> | null;
+  metadata: Record<string, unknown> | null;
   ipAddress: string | null;
   userAgent: string | null;
   userId: string;
@@ -174,6 +174,7 @@ export default function AuditLogsPage() {
     if (profile) {
       fetchLogs();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile, currentPage, filterEntityType, filterAction]);
 
   const handleSearch = () => {
@@ -201,18 +202,18 @@ export default function AuditLogsPage() {
     });
   };
 
-  const formatValue = (value: any, isExpanded: boolean = false): string => {
+  const formatValue = (value: unknown, isExpanded: boolean = false): string => {
     if (value === null || value === undefined) return "null";
     if (typeof value === "string") return value;
     if (typeof value === "number" || typeof value === "boolean") return String(value);
-    
+
     if (Array.isArray(value)) {
       if (isExpanded) {
         return JSON.stringify(value, null, 2);
       }
       return `[${value.length} elemento${value.length !== 1 ? "s" : ""}]`;
     }
-    
+
     if (typeof value === "object") {
       if (isExpanded) {
         return JSON.stringify(value, null, 2);
@@ -220,11 +221,11 @@ export default function AuditLogsPage() {
       const keys = Object.keys(value);
       return `{${keys.length} propiedad${keys.length !== 1 ? "es" : ""}}`;
     }
-    
+
     return String(value);
   };
 
-  const formatChanges = (changes: any, isExpanded: boolean = false) => {
+  const formatChanges = (changes: Record<string, { from?: unknown; to?: unknown }> | null, isExpanded: boolean = false) => {
     if (!changes || typeof changes !== "object") return null;
 
     const entries = Object.entries(changes);
@@ -234,7 +235,7 @@ export default function AuditLogsPage() {
 
     return (
       <div className="text-xs space-y-2">
-        {displayEntries.map(([key, value]: [string, any]) => (
+        {displayEntries.map(([key, value]: [string, { from?: unknown; to?: unknown }]) => (
           <div key={key} className="border-l-2 border-blue-300 dark:border-blue-700 pl-2 py-0.5">
             <span className="font-medium text-foreground">{key}:</span>
             {value?.from !== undefined && (

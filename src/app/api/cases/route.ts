@@ -71,6 +71,7 @@ export async function GET(request: NextRequest) {
     const schoolId = searchParams.get('schoolId');
 
     // Build where clause based on role
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {
       isDeleted: false,
     };

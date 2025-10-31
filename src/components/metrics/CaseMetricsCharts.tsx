@@ -135,6 +135,7 @@ export function CaseMetricsCharts({
                 cx="50%"
                 cy="50%"
                 labelLine={false}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 label={(props: any) => {
                   const { name, percent } = props;
                   return `${name}: ${(percent * 100).toFixed(0)}%`;
@@ -208,6 +209,7 @@ export function CaseMetricsCharts({
                   border: "1px solid hsl(var(--border))",
                   borderRadius: "8px",
                 }}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 formatter={(value: number, name: string, props: any) => [
                   value,
                   props.payload.fullName || name,

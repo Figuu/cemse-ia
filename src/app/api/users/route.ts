@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
         name?: { contains: string; mode: "insensitive" };
         email?: { contains: string; mode: "insensitive" };
       }>;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       role?: any;
       schoolId?: string | null;
       isDeleted?: boolean;

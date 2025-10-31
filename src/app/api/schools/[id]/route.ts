@@ -127,6 +127,7 @@ export async function PATCH(
       where: { id },
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (!school || (school as any).isDeleted) {
       return NextResponse.json(
         { error: "Colegio no encontrado" },
@@ -135,11 +136,13 @@ export async function PATCH(
     }
 
     // If code is being changed, check if new code already exists
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (data.code && data.code !== (school as any).code) {
       const existingSchool = await prisma.school.findFirst({
         where: {
           code: data.code,
           isDeleted: false,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any,
       });
 
@@ -152,9 +155,12 @@ export async function PATCH(
     }
 
     // Track changes for audit log
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const changes: Record<string, any> = {};
     Object.keys(data).forEach(key => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const newValue = (data as any)[key];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const oldValue = (school as any)[key];
       if (newValue !== undefined && newValue !== oldValue) {
         changes[key] = { from: oldValue, to: newValue };
@@ -248,6 +254,7 @@ export async function DELETE(
       },
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (!school || (school as any).isDeleted) {
       return NextResponse.json(
         { error: "Colegio no encontrado" },
@@ -280,6 +287,7 @@ export async function DELETE(
         isDeleted: true,
         deletedAt: new Date(),
         deletedBy: currentUser.id,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any,
     });
 

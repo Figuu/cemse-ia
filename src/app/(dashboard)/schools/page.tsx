@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { School } from "@prisma/client";
+import { School, ViolenceType, CaseStatus, CasePriority } from "@prisma/client";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -77,7 +77,18 @@ export default function SchoolsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingSchool, setDeletingSchool] = useState<SchoolWithCount | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [metrics, setMetrics] = useState<any>(null);
+  const [metrics, setMetrics] = useState<{
+    totalCases?: number;
+    openCases?: number;
+    inProgressCases?: number;
+    resolvedCases?: number;
+    recentCases?: number;
+    casesByStatus?: Array<{ status: string; count: number }>;
+    casesByViolenceType?: Array<{ type: string; count: number }>;
+    casesByPriority?: Array<{ priority: string; count: number }>;
+    casesBySchool?: Array<{ schoolId: string; schoolName: string; count: number }>;
+    casesOverTime?: Array<{ date: string; count: number }>;
+  } | null>(null);
   const [loadingMetrics, setLoadingMetrics] = useState(false);
   const [metricsFilters, setMetricsFilters] = useState({
     schoolId: "all",
@@ -171,6 +182,7 @@ export default function SchoolsPage() {
       fetchAllSchools();
       fetchMetrics();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchSchools, canManage]);
 
   useEffect(() => {
@@ -448,18 +460,13 @@ export default function SchoolsPage() {
                   <div>
                     <h4 className="text-sm font-semibold mb-3">Por Colegio</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {metrics.casesBySchool.slice(0, 10).map((item: any) => (
+                      {metrics.casesBySchool.slice(0, 10).map((item: { schoolId: string; schoolName: string; count: number }) => (
                         <div
                           key={item.schoolId}
                           className="flex items-center justify-between p-3 bg-muted rounded-lg"
                         >
                           <div>
                             <span className="text-sm font-medium">{item.schoolName}</span>
-                            {item.schoolCode && (
-                              <span className="text-xs text-muted-foreground ml-2">
-                                ({item.schoolCode})
-                              </span>
-                            )}
                           </div>
                           <span className="text-sm font-bold">{item.count}</span>
                         </div>
@@ -473,12 +480,12 @@ export default function SchoolsPage() {
                   <div>
                     <h4 className="text-sm font-semibold mb-3">Por Estado</h4>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {metrics.casesByStatus.map((item: any) => (
+                      {metrics.casesByStatus.map((item: { status: string; count: number }) => (
                         <div
                           key={item.status}
                           className="flex items-center justify-between p-3 bg-muted rounded-lg"
                         >
-                          <span className="text-sm">{translateCaseStatus(item.status)}</span>
+                          <span className="text-sm">{translateCaseStatus(item.status as CaseStatus)}</span>
                           <span className="text-sm font-bold">{item.count}</span>
                         </div>
                       ))}
@@ -491,12 +498,12 @@ export default function SchoolsPage() {
                   <div>
                     <h4 className="text-sm font-semibold mb-3">Por Tipo de Violencia</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {metrics.casesByViolenceType.map((item: any) => (
+                      {metrics.casesByViolenceType.map((item: { type: string; count: number }) => (
                         <div
                           key={item.type}
                           className="flex items-center justify-between p-3 bg-muted rounded-lg"
                         >
-                          <span className="text-sm">{translateViolenceType(item.type)}</span>
+                          <span className="text-sm">{translateViolenceType(item.type as ViolenceType)}</span>
                           <span className="text-sm font-bold">{item.count}</span>
                         </div>
                       ))}
@@ -509,12 +516,12 @@ export default function SchoolsPage() {
                   <div>
                     <h4 className="text-sm font-semibold mb-3">Por Prioridad</h4>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {metrics.casesByPriority.map((item: any) => (
+                      {metrics.casesByPriority.map((item: { priority: string; count: number }) => (
                         <div
                           key={item.priority}
                           className="flex items-center justify-between p-3 bg-muted rounded-lg"
                         >
-                          <span className="text-sm">{translateCasePriority(item.priority)}</span>
+                          <span className="text-sm">{translateCasePriority(item.priority as CasePriority)}</span>
                           <span className="text-sm font-bold">{item.count}</span>
                         </div>
                       ))}

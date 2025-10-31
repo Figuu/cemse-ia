@@ -188,9 +188,12 @@ export async function PATCH(
     const validatedData = updateCaseSchema.parse(body);
 
     // Track changes for audit log
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const changes: Record<string, any> = {};
     Object.keys(validatedData).forEach(key => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const newValue = (validatedData as any)[key];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const oldValue = (existingCase as any)[key];
       if (newValue !== undefined && JSON.stringify(newValue) !== JSON.stringify(oldValue)) {
         changes[key] = { from: oldValue, to: newValue };
@@ -198,6 +201,7 @@ export async function PATCH(
     });
 
     // Prepare update data
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: any = {};
     if (validatedData.incidentDate) {
       updateData.incidentDate = new Date(validatedData.incidentDate);

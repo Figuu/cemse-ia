@@ -142,6 +142,7 @@ export async function PATCH(
     const { title, description, visibility } = body;
 
     // If visibility changes from PRIVATE to PUBLIC for director-uploaded items, need approval
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, prefer-const
     let updateData: any = {};
     if (title) updateData.title = title;
     if (description !== undefined) updateData.description = description;

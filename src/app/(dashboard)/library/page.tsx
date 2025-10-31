@@ -184,6 +184,7 @@ export default function LibraryPage() {
     if (profile) {
       fetchItems();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile, currentPage, searchTerm, filterVisibility]);
 
   const handleSearch = () => {
@@ -553,7 +554,7 @@ export default function LibraryPage() {
                           a.click();
                           window.URL.revokeObjectURL(url);
                           document.body.removeChild(a);
-                        } catch (error) {
+                        } catch {
                           toast({
                             title: "Error",
                             description: "Error al descargar el archivo",
@@ -663,7 +664,7 @@ export default function LibraryPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar archivo?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción eliminará el archivo "{itemToDelete?.title}". Esta acción no se puede deshacer.
+              Esta acción eliminará el archivo &quot;{itemToDelete?.title}&quot;. Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

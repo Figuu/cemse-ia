@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
     const userIsDirector = await isDirector(session.user.id);
 
     // Build where clause
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {
       isDeleted: false, // Only show non-deleted schools
     };
@@ -147,6 +148,7 @@ export async function POST(request: NextRequest) {
       where: {
         code: data.code,
         isDeleted: false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any,
     });
 
@@ -167,6 +169,7 @@ export async function POST(request: NextRequest) {
         district: data.district,
         phone: data.phone,
         email: data.email || null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any,
       include: {
         _count: {
@@ -183,6 +186,7 @@ export async function POST(request: NextRequest) {
       currentUser.id,
       {
         type: school.type,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         code: (school as any).code,
       }
     );

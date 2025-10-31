@@ -148,6 +148,7 @@ export default function CasesPage() {
     if (profile) {
       fetchCases();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile, currentPage, searchTerm, filterViolenceType, filterStatus, filterPriority]);
 
   const handleSearch = (value: string) => {

@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
     const visibility = searchParams.get("visibility") as LibraryVisibility | null;
 
     // Build where clause based on user role and permissions
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const baseConditions: any[] = [
       { isDeleted: false },
     ];

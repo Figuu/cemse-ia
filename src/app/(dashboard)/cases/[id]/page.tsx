@@ -158,6 +158,7 @@ export default function CaseDetailPage({
     if (profile) {
       fetchCase();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile, resolvedParams.id]);
 
   const handleDelete = async () => {

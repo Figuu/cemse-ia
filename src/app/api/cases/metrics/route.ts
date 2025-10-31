@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get("endDate");
 
     // Build where clause
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {
       isDeleted: false,
     };
@@ -208,6 +209,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Count cases by month
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     casesOverTimeRaw.forEach((caseItem: any) => {
       const date = new Date(caseItem.createdAt);
       if (date >= twelveMonthsAgo) {

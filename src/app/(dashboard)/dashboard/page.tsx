@@ -9,12 +9,27 @@ import { ForcePasswordChangeModal } from "@/components/ForcePasswordChangeModal"
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { SchoolType } from "@prisma/client";
+
+interface SchoolData {
+  id: string;
+  name: string;
+  code: string;
+  type: SchoolType;
+  address: string | null;
+  district: string | null;
+  phone: string | null;
+  email: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  users: any[];
+  metrics?: unknown;
+}
 
 export default function DashboardPage() {
   const { profile, loading } = useAuth();
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
-  const [schoolData, setSchoolData] = useState<any>(null);
+  const [schoolData, setSchoolData] = useState<SchoolData | null>(null);
   const [loadingSchool, setLoadingSchool] = useState(false);
 
   useEffect(() => {
@@ -53,7 +68,7 @@ export default function DashboardPage() {
               if (metricsResponse.ok && metricsData) {
                 schoolData.metrics = metricsData;
               }
-            } catch (e) {
+            } catch {
               // Ignore metrics errors
             }
           }

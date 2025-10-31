@@ -109,7 +109,7 @@ export function UserModal({
         }
 
         setSchools(data || []);
-      } catch (error) {
+      } catch {
         toast({
           title: "Error al cargar la lista de colegios",
           variant: "destructive",

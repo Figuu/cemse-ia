@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma/client";
 import { getSession } from "@/lib/auth";
 import { isDirector } from "@/lib/permissions";
@@ -8,7 +8,7 @@ import { isDirector } from "@/lib/permissions";
  * Get simplified list of schools for dropdowns
  * Returns only id, name, and code
  */
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     const session = await getSession();
 
