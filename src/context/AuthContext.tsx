@@ -3,11 +3,23 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { User } from "@supabase/supabase-js";
-import type { Profile } from "@prisma/client";
+import type { Profile, SchoolType } from "@prisma/client";
+
+// Extended Profile type with school relation
+type ProfileWithSchool = Profile & {
+  school?: {
+    id: string;
+    name: string;
+    code: string;
+    type: SchoolType;
+    address: string | null;
+    district: string | null;
+  } | null;
+};
 
 interface AuthContextType {
   user: User | null;
-  profile: Profile | null;
+  profile: ProfileWithSchool | null;
   loading: boolean;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -17,7 +29,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<ProfileWithSchool | null>(null);
   const [loading, setLoading] = useState(true);
 
   const supabase = createClient();

@@ -146,10 +146,22 @@ export async function getCurrentUser() {
       return null;
     }
 
-    // Get profile from database
+    // Get profile from database with all fields
     const profile = await prisma.profile.findUnique({
       where: {
         authUserId: user.id,
+      },
+      include: {
+        school: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            type: true,
+            address: true,
+            district: true,
+          },
+        },
       },
     });
 

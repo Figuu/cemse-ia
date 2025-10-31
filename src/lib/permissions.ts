@@ -52,6 +52,67 @@ export async function isAdmin(userId: string): Promise<boolean> {
 }
 
 /**
+ * Check if user is a director
+ */
+export async function isDirector(userId: string): Promise<boolean> {
+  try {
+    const profile = await prisma.profile.findUnique({
+      where: {
+        authUserId: userId,
+      },
+      select: {
+        role: true,
+      },
+    });
+
+    if (!profile) {
+      return false;
+    }
+
+    return profile.role === "DIRECTOR";
+  } catch (error) {
+    console.error("Error checking director status:", error);
+    return false;
+  }
+}
+
+/**
+ * Check if user has school management privileges (ADMIN, SUPER_ADMIN, or DIRECTOR)
+ */
+export async function canManageSchool(userId: string, schoolId?: string): Promise<boolean> {
+  try {
+    const profile = await prisma.profile.findUnique({
+      where: {
+        authUserId: userId,
+      },
+      select: {
+        role: true,
+        schoolId: true,
+      },
+    });
+
+    if (!profile) {
+      return false;
+    }
+
+    // Super admins and admins can manage all schools
+    if (profile.role === "SUPER_ADMIN" || profile.role === "ADMIN") {
+      return true;
+    }
+
+    // Directors can only manage their own school
+    if (profile.role === "DIRECTOR" && schoolId) {
+      return profile.schoolId === schoolId;
+    }
+
+    return false;
+  } catch (error) {
+    console.error("Error checking school management permission:", error);
+    return false;
+  }
+}
+
+/**
  * Check if user is super admin
  */
 export async function isSuperAdmin(userId: string): Promise<boolean> {
@@ -100,8 +161,10 @@ export async function canAccessResource(
     // Define role hierarchy
     const roleHierarchy: Record<Role, number> = {
       USER: 1,
-      ADMIN: 2,
-      SUPER_ADMIN: 3,
+      PROFESOR: 2,
+      DIRECTOR: 3,
+      ADMIN: 4,
+      SUPER_ADMIN: 5,
     };
 
     const userRoleLevel = roleHierarchy[profile.role];
@@ -125,11 +188,11 @@ export async function canModifyUser(
     const [currentUser, targetUser] = await Promise.all([
       prisma.profile.findUnique({
         where: { authUserId: currentUserId },
-        select: { role: true },
+        select: { role: true, schoolId: true },
       }),
       prisma.profile.findUnique({
         where: { authUserId: targetUserId },
-        select: { role: true },
+        select: { role: true, schoolId: true },
       }),
     ]);
 
@@ -142,12 +205,21 @@ export async function canModifyUser(
       return true;
     }
 
-    // Admin can modify regular users only
-    if (currentUser.role === "ADMIN" && targetUser.role === "USER") {
-      return true;
+    // Admin can modify DIRECTOR, PROFESOR, and USER roles
+    if (currentUser.role === "ADMIN") {
+      return ["DIRECTOR", "PROFESOR", "USER"].includes(targetUser.role);
     }
 
-    // Regular users can only modify themselves
+    // Director can modify PROFESOR in their school only
+    if (currentUser.role === "DIRECTOR") {
+      return (
+        targetUser.role === "PROFESOR" &&
+        currentUser.schoolId === targetUser.schoolId &&
+        currentUser.schoolId !== null
+      );
+    }
+
+    // Users can only modify themselves
     return currentUserId === targetUserId;
   } catch (error) {
     console.error("Error checking modify permission:", error);
@@ -177,12 +249,17 @@ export async function canCreateUserWithRole(
       return true;
     }
 
-    // Admin can only create USER role
-    if (currentUser.role === "ADMIN" && targetRole === "USER") {
+    // Admin can create DIRECTOR, PROFESOR, and USER roles
+    if (currentUser.role === "ADMIN") {
+      return ["DIRECTOR", "PROFESOR", "USER"].includes(targetRole);
+    }
+
+    // Director can only create PROFESOR role
+    if (currentUser.role === "DIRECTOR" && targetRole === "PROFESOR") {
       return true;
     }
 
-    // Regular users cannot create any users
+    // Other users cannot create any users
     return false;
   } catch (error) {
     console.error("Error checking create user permission:", error);

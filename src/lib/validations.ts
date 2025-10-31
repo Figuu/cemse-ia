@@ -172,8 +172,9 @@ export const createUserSchema = z.object({
     .string()
     .max(100, "El departamento no puede exceder 100 caracteres")
     .optional(),
-  role: z.enum(["USER", "ADMIN", "SUPER_ADMIN"]).default("USER"),
+  role: z.enum(["USER", "ADMIN", "SUPER_ADMIN", "DIRECTOR", "PROFESOR"]).default("USER"),
   forcePasswordChange: z.boolean().default(false),
+  schoolId: z.string().uuid("ID de colegio inválido").optional().nullable(),
 });
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;
@@ -203,8 +204,93 @@ export const updateUserSchema = z.object({
     .max(500, "La biografía no puede exceder 500 caracteres")
     .optional(),
   pfpUrl: z.string().url("URL de imagen inválida").optional(),
-  role: z.enum(["USER", "ADMIN", "SUPER_ADMIN"]).optional(),
+  role: z.enum(["USER", "ADMIN", "SUPER_ADMIN", "DIRECTOR", "PROFESOR"]).optional(),
   forcePasswordChange: z.boolean().optional(),
+  schoolId: z.string().uuid("ID de colegio inválido").optional().nullable(),
 });
 
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+
+/**
+ * Create school schema
+ */
+export const createSchoolSchema = z.object({
+  name: z
+    .string()
+    .min(2, "El nombre del colegio debe tener al menos 2 caracteres")
+    .max(200, "El nombre no puede exceder 200 caracteres"),
+  code: z
+    .string()
+    .min(2, "El código debe tener al menos 2 caracteres")
+    .max(50, "El código no puede exceder 50 caracteres")
+    .regex(/^[A-Z0-9-]+$/, "El código solo puede contener letras mayúsculas, números y guiones"),
+  type: z.enum(["PUBLIC", "PRIVATE", "SUBSIDIZED"], {
+    message: "Tipo de colegio inválido",
+  }),
+  address: z
+    .string()
+    .max(500, "La dirección no puede exceder 500 caracteres")
+    .optional(),
+  district: z
+    .string()
+    .max(100, "El distrito no puede exceder 100 caracteres")
+    .optional(),
+  phone: z
+    .string()
+    .optional()
+    .refine(
+      val => !val || val.length >= 10,
+      "El teléfono debe tener al menos 10 dígitos"
+    ),
+  email: z
+    .string()
+    .email("Correo electrónico inválido")
+    .regex(emailRegex, "Formato de correo electrónico inválido")
+    .optional()
+    .or(z.literal("")),
+});
+
+export type CreateSchoolInput = z.infer<typeof createSchoolSchema>;
+
+/**
+ * Update school schema
+ */
+export const updateSchoolSchema = z.object({
+  name: z
+    .string()
+    .min(2, "El nombre del colegio debe tener al menos 2 caracteres")
+    .max(200, "El nombre no puede exceder 200 caracteres")
+    .optional(),
+  code: z
+    .string()
+    .min(2, "El código debe tener al menos 2 caracteres")
+    .max(50, "El código no puede exceder 50 caracteres")
+    .regex(/^[A-Z0-9-]+$/, "El código solo puede contener letras mayúsculas, números y guiones")
+    .optional(),
+  type: z.enum(["PUBLIC", "PRIVATE", "SUBSIDIZED"], {
+    message: "Tipo de colegio inválido",
+  }).optional(),
+  address: z
+    .string()
+    .max(500, "La dirección no puede exceder 500 caracteres")
+    .optional(),
+  district: z
+    .string()
+    .max(100, "El distrito no puede exceder 100 caracteres")
+    .optional(),
+  phone: z
+    .string()
+    .optional()
+    .refine(
+      val => !val || val.length >= 10,
+      "El teléfono debe tener al menos 10 dígitos"
+    ),
+  email: z
+    .string()
+    .email("Correo electrónico inválido")
+    .regex(emailRegex, "Formato de correo electrónico inválido")
+    .optional()
+    .or(z.literal("")),
+});
+
+export type UpdateSchoolInput = z.infer<typeof updateSchoolSchema>;

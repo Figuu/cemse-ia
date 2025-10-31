@@ -19,13 +19,19 @@ export async function middleware(request: NextRequest) {
   const isProtectedRoute =
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/profile") ||
-    pathname.startsWith("/users");
+    pathname.startsWith("/users") ||
+    pathname.startsWith("/schools") ||
+    pathname.startsWith("/cases") ||
+    pathname.startsWith("/audit-logs");
 
   // API routes that require different handling
   const isAPIProtectedRoute =
     pathname.startsWith("/api/profile") ||
     pathname.startsWith("/api/files") ||
-    pathname.startsWith("/api/users");
+    pathname.startsWith("/api/users") ||
+    pathname.startsWith("/api/schools") ||
+    pathname.startsWith("/api/cases") ||
+    pathname.startsWith("/api/audit-logs");
 
   // Check session for auth pages - redirect to dashboard if already authenticated
   if (isAuthPage) {
@@ -91,20 +97,87 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next();
       }
 
-      // 5.5 & 5.6: Users route protection (Admin and Super Admin only)
+      // 5.5 & 5.6: Users route protection (Admin, Super Admin, and Director)
       if (pathname.startsWith("/users")) {
-        const isAdmin =
-          profile.role === "ADMIN" || profile.role === "SUPER_ADMIN";
+        const canAccessUsers =
+          profile.role === "ADMIN" ||
+          profile.role === "SUPER_ADMIN" ||
+          profile.role === "DIRECTOR";
 
-        if (!isAdmin) {
-          // Redirect non-admin users to dashboard
+        if (!canAccessUsers) {
+          // Redirect unauthorized users to dashboard
           const redirectUrl = request.nextUrl.clone();
           redirectUrl.pathname = "/dashboard";
           redirectUrl.searchParams.set("error", "unauthorized");
           return NextResponse.redirect(redirectUrl);
         }
 
-        // Admin and Super Admin can access all /users routes including /users/create
+        // Admin, Super Admin, and Director can access /users routes
+        return NextResponse.next();
+      }
+
+      // Schools route protection
+      if (pathname.startsWith("/schools")) {
+        // Admin and Super Admin can access all schools routes
+        if (profile.role === "ADMIN" || profile.role === "SUPER_ADMIN") {
+          return NextResponse.next();
+        }
+
+        // Director and Profesor can only access their own school detail page
+        if (profile.role === "DIRECTOR" || profile.role === "PROFESOR") {
+          // Check if accessing their own school detail page
+          const schoolIdMatch = pathname.match(/^\/schools\/([^\/]+)$/);
+          if (schoolIdMatch && schoolIdMatch[1] === profile.schoolId) {
+            return NextResponse.next();
+          }
+
+          // Redirect to their school page if they try to access schools list or other schools
+          const redirectUrl = request.nextUrl.clone();
+          if (profile.schoolId) {
+            redirectUrl.pathname = `/schools/${profile.schoolId}`;
+          } else {
+            redirectUrl.pathname = "/dashboard";
+          }
+          return NextResponse.redirect(redirectUrl);
+        }
+
+        // All other users cannot access schools
+        const redirectUrl = request.nextUrl.clone();
+        redirectUrl.pathname = "/dashboard";
+        redirectUrl.searchParams.set("error", "unauthorized");
+        return NextResponse.redirect(redirectUrl);
+      }
+
+      // Cases route protection (Director, Profesor, Admin, Super Admin)
+      if (pathname.startsWith("/cases")) {
+        const canAccessCases =
+          profile.role === "DIRECTOR" ||
+          profile.role === "PROFESOR" ||
+          profile.role === "ADMIN" ||
+          profile.role === "SUPER_ADMIN";
+
+        if (!canAccessCases) {
+          const redirectUrl = request.nextUrl.clone();
+          redirectUrl.pathname = "/dashboard";
+          redirectUrl.searchParams.set("error", "unauthorized");
+          return NextResponse.redirect(redirectUrl);
+        }
+
+        return NextResponse.next();
+      }
+
+      // Audit logs route protection (Admin, Super Admin only)
+      if (pathname.startsWith("/audit-logs")) {
+        const canAccessAuditLogs =
+          profile.role === "ADMIN" || profile.role === "SUPER_ADMIN";
+
+        if (!canAccessAuditLogs) {
+          const redirectUrl = request.nextUrl.clone();
+          redirectUrl.pathname = "/dashboard";
+          redirectUrl.searchParams.set("error", "unauthorized");
+          return NextResponse.redirect(redirectUrl);
+        }
+
         return NextResponse.next();
       }
 
@@ -125,11 +198,54 @@ export async function middleware(request: NextRequest) {
       }
 
       if (pathname.startsWith("/api/users")) {
-        // Users API routes (Admin and Super Admin only)
-        const isAdmin =
+        // Users API routes (Admin, Super Admin, and Director)
+        const canAccessUsers =
+          profile.role === "ADMIN" ||
+          profile.role === "SUPER_ADMIN" ||
+          profile.role === "DIRECTOR";
+
+        if (!canAccessUsers) {
+          return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+        }
+
+        return NextResponse.next();
+      }
+
+      if (pathname.startsWith("/api/schools")) {
+        // Schools API routes (Admin, Super Admin, and Director)
+        const canAccessSchools =
+          profile.role === "ADMIN" ||
+          profile.role === "SUPER_ADMIN" ||
+          profile.role === "DIRECTOR";
+
+        if (!canAccessSchools) {
+          return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+        }
+
+        return NextResponse.next();
+      }
+
+      if (pathname.startsWith("/api/cases")) {
+        // Cases API routes (Director, Profesor, Admin, Super Admin)
+        const canAccessCases =
+          profile.role === "DIRECTOR" ||
+          profile.role === "PROFESOR" ||
+          profile.role === "ADMIN" ||
+          profile.role === "SUPER_ADMIN";
+
+        if (!canAccessCases) {
+          return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+        }
+
+        return NextResponse.next();
+      }
+
+      if (pathname.startsWith("/api/audit-logs")) {
+        // Audit logs API routes (Admin, Super Admin only)
+        const canAccessAuditLogs =
           profile.role === "ADMIN" || profile.role === "SUPER_ADMIN";
 
-        if (!isAdmin) {
+        if (!canAccessAuditLogs) {
           return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
 
