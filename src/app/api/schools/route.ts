@@ -105,9 +105,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Require admin permissions
-    const authError = await requireAuthAndAdmin();
-    if (authError) {
-      return authError;
+    const authResult = await requireAuthAndAdmin();
+    if (!authResult.success) {
+      return authResult.response;
     }
 
     const session = await getSession();

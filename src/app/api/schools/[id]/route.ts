@@ -84,9 +84,9 @@ export async function PATCH(
 ) {
   try {
     // Require admin permissions
-    const authError = await requireAuthAndAdmin();
-    if (authError) {
-      return authError;
+    const authResult = await requireAuthAndAdmin();
+    if (!authResult.success) {
+      return authResult.response;
     }
 
     const { id } = await params;
@@ -212,9 +212,9 @@ export async function DELETE(
 ) {
   try {
     // Require admin permissions
-    const authError = await requireAuthAndAdmin();
-    if (authError) {
-      return authError;
+    const authResult = await requireAuthAndAdmin();
+    if (!authResult.success) {
+      return authResult.response;
     }
 
     const session = await getSession();
