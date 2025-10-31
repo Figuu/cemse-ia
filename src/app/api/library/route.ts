@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, extractAuthData } from "@/lib/api/permissions";
 import { prisma } from "@/lib/prisma/client";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { LibraryVisibility, Role } from "@prisma/client";
+import { LibraryVisibility } from "@prisma/client";
 
 const LIBRARY_BUCKET = "library";
 

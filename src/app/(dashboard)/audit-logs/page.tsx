@@ -188,16 +188,6 @@ export default function AuditLogsPage() {
     setCurrentPage(1);
   };
 
-  const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString("es-ES", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
-  };
 
   const toggleChanges = (logId: string) => {
     setExpandedChanges((prev) => {
@@ -421,7 +411,7 @@ export default function AuditLogsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {logs.map((log, index) => (
+                  {logs.map((log) => (
                     <TableRow 
                       key={log.id} 
                       className="hover:bg-muted/50 transition-colors border-b last:border-b-0"

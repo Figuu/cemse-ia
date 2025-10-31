@@ -50,7 +50,6 @@ import {
   AlertCircle,
   TrendingUp,
   CheckCircle2,
-  XCircle,
   Clock,
   BarChart3,
 } from "lucide-react";

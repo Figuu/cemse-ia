@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuthAndAdmin, requireAuthAndAdminOrDirector, extractAuthData } from "@/lib/api/permissions";
+import { requireAuthAndAdminOrDirector, extractAuthData } from "@/lib/api/permissions";
 import { prisma } from "@/lib/prisma/client";
 import { createUserSchema } from "@/lib/validations";
 import { signUp } from "@/lib/auth";

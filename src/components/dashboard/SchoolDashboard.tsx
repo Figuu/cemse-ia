@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -24,13 +23,11 @@ import {
   FileText,
   AlertCircle,
   TrendingUp,
-  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { translateSchoolType, getSchoolTypeBadgeColor, translateRole, getRoleBadgeColor } from "@/lib/translations";
 import { Role, SchoolType } from "@prisma/client";
 import { CaseMetricsCharts } from "@/components/metrics/CaseMetricsCharts";
-import { Skeleton } from "@/components/ui/skeleton";
 
 interface SchoolInfo {
   id: string;

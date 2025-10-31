@@ -16,6 +16,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { translateViolenceType, translateCaseStatus, translateCasePriority } from "@/lib/translations";
+import { CaseStatus, ViolenceType, CasePriority } from "@prisma/client";
 
 interface CaseMetricsChartsProps {
   casesByStatus?: Array<{ status: string; count: number }>;
@@ -61,19 +62,19 @@ export function CaseMetricsCharts({
 }: CaseMetricsChartsProps) {
   // Transform data for charts
   const statusChartData = casesByStatus?.map((item) => ({
-    name: translateCaseStatus(item.status),
+    name: translateCaseStatus(item.status as CaseStatus),
     value: item.count,
     status: item.status,
   })) || [];
 
   const violenceChartData = casesByViolenceType?.map((item) => ({
-    name: translateViolenceType(item.type),
+    name: translateViolenceType(item.type as ViolenceType),
     value: item.count,
     type: item.type,
   })) || [];
 
   const priorityChartData = casesByPriority?.map((item) => ({
-    name: translateCasePriority(item.priority),
+    name: translateCasePriority(item.priority as CasePriority),
     value: item.count,
     priority: item.priority,
   })) || [];
@@ -134,12 +135,15 @@ export function CaseMetricsCharts({
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                label={(props: any) => {
+                  const { name, percent } = props;
+                  return `${name}: ${(percent * 100).toFixed(0)}%`;
+                }}
                 outerRadius={100}
                 fill="#8884d8"
                 dataKey="value"
               >
-                {violenceChartData.map((entry, index) => (
+                {violenceChartData.map((_entry, index) => (
                   <Cell
                     key={`cell-${index}`}
                     fill={COLORS.violence[index % COLORS.violence.length]}

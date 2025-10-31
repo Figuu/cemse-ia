@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Plus,
   Search,
   Filter,
   Book,
@@ -12,7 +11,6 @@ import {
   Trash2,
   Edit,
   Check,
-  X,
   FileText,
   ChevronLeft,
   ChevronRight,
