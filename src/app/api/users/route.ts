@@ -1,18 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuthAndAdmin, extractAuthData } from "@/lib/api/permissions";
+import { requireAuthAndAdmin, requireAuthAndAdminOrDirector, extractAuthData } from "@/lib/api/permissions";
 import { prisma } from "@/lib/prisma/client";
 import { createUserSchema } from "@/lib/validations";
 import { signUp } from "@/lib/auth";
 import crypto from "crypto";
 
-// GET - Get all users (Admin and Super Admin only)
+// GET - Get all users (Admin, Super Admin, and Directors - Directors only see their school users)
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await requireAuthAndAdmin();
+    const authResult = await requireAuthAndAdminOrDirector();
 
     if (!authResult.success) {
       return authResult.response;
     }
+
+    const { profile } = extractAuthData(authResult);
 
     // Get search params
     const searchParams = request.nextUrl.searchParams;
@@ -28,8 +30,16 @@ export async function GET(request: NextRequest) {
         email?: { contains: string; mode: "insensitive" };
       }>;
       role?: any;
-      schoolId?: string;
-    } = {};
+      schoolId?: string | null;
+      isDeleted?: boolean;
+    } = {
+      isDeleted: false, // Only show non-deleted users
+    };
+
+    // Directors can only see users from their own school
+    if (profile.role === "DIRECTOR" && profile.schoolId) {
+      where.schoolId = profile.schoolId;
+    }
 
     if (search) {
       where.OR = [
@@ -42,16 +52,16 @@ export async function GET(request: NextRequest) {
       where.role = role;
     }
 
-    // Filter by school if provided
+    // Filter by school if provided (only for admins)
     const schoolId = searchParams.get("schoolId");
-    if (schoolId) {
+    if (schoolId && (profile.role === "ADMIN" || profile.role === "SUPER_ADMIN")) {
       where.schoolId = schoolId;
     }
 
     // Get total count
     const total = await prisma.profile.count({ where });
 
-    // Get users
+    // Get users with school relation
     const users = await prisma.profile.findMany({
       where,
       take: limit,
@@ -59,35 +69,46 @@ export async function GET(request: NextRequest) {
       orderBy: {
         createdAt: "desc",
       },
-      select: {
-        id: true,
-        authUserId: true,
-        email: true,
-        name: true,
-        phone: true,
-        department: true,
-        pfpUrl: true,
-        biography: true,
-        role: true,
-        forcePasswordChange: true,
-        schoolId: true,
+      include: {
         school: {
           select: {
             id: true,
             name: true,
             code: true,
             type: true,
+            isDeleted: true,
           },
         },
-        createdAt: true,
-        updatedAt: true,
       },
     });
+
+    // Clean up the data structure and filter out deleted schools
+    const cleanedUsers = users.map((user) => ({
+      id: user.id,
+      authUserId: user.authUserId,
+      email: user.email,
+      name: user.name,
+      phone: user.phone,
+      department: user.department,
+      pfpUrl: user.pfpUrl,
+      biography: user.biography,
+      role: user.role,
+      forcePasswordChange: user.forcePasswordChange,
+      schoolId: user.schoolId,
+      school: user.school && !user.school.isDeleted ? {
+        id: user.school.id,
+        name: user.school.name,
+        code: user.school.code,
+        type: user.school.type,
+      } : null,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    }));
 
     return NextResponse.json(
       {
         success: true,
-        users,
+        users: cleanedUsers,
         pagination: {
           total,
           page,
@@ -103,16 +124,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         error: "Error al obtener los usuarios",
+        details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 }
     );
   }
 }
 
-// POST - Create a new user (Admin and Super Admin only)
+// POST - Create a new user (Admin, Super Admin, and Directors can create users)
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await requireAuthAndAdmin();
+    const authResult = await requireAuthAndAdminOrDirector();
 
     if (!authResult.success) {
       return authResult.response;

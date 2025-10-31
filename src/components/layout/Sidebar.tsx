@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useSidebar } from "@/context/SidebarContext";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, User, X, School, FileText, History } from "lucide-react";
+import { Home, Users, User, X, School, FileText, History, Book } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef } from "react";
@@ -60,14 +60,21 @@ export function Sidebar() {
     });
   }
 
-  // Add user management navigation for ADMIN, SUPER_ADMIN, and DIRECTOR
-  if (profile && (profile.role === "ADMIN" || profile.role === "SUPER_ADMIN" || profile.role === "DIRECTOR")) {
-    navItems.push({
-      title: "Usuarios",
-      href: "/users",
-      icon: Users,
-      roles: ["ADMIN", "SUPER_ADMIN", "DIRECTOR"],
-    });
+  // Add user management navigation for ADMIN, SUPER_ADMIN, and DIRECTOR (only if director has school assigned)
+  if (profile) {
+    const canAccessUsers = 
+      profile.role === "ADMIN" || 
+      profile.role === "SUPER_ADMIN" || 
+      (profile.role === "DIRECTOR" && profile.schoolId);
+    
+    if (canAccessUsers) {
+      navItems.push({
+        title: "Usuarios",
+        href: "/users",
+        icon: Users,
+        roles: ["ADMIN", "SUPER_ADMIN", "DIRECTOR"],
+      });
+    }
   }
 
   // Add school info navigation for DIRECTOR and PROFESOR (their own school)
@@ -100,6 +107,16 @@ export function Sidebar() {
     });
   }
 
+  // Add library navigation for ADMIN, SUPER_ADMIN, DIRECTOR, and PROFESOR
+  if (profile && ["ADMIN", "SUPER_ADMIN", "DIRECTOR", "PROFESOR"].includes(profile.role)) {
+    navItems.push({
+      title: "Biblioteca",
+      href: "/library",
+      icon: Book,
+      roles: ["ADMIN", "SUPER_ADMIN", "DIRECTOR", "PROFESOR"],
+    });
+  }
+
   return (
     <>
       {/* Mobile overlay */}
@@ -117,65 +134,70 @@ export function Sidebar() {
           "shrink-0 border-r bg-background transition-all duration-300",
           // Mobile: fixed overlay
           "fixed inset-y-0 left-0 z-50 w-64",
-          "md:relative md:z-auto",
+          // Desktop: sticky positioning
+          "md:sticky md:top-0 md:h-screen md:z-auto",
           // Mobile: slide in/out
           isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
           // Desktop: expand/collapse width
           isCollapsed ? "md:w-16" : "md:w-64"
         )}
       >
-        {/* Branding header - visible on desktop, replaced with close button on mobile */}
-        <div className="flex h-16 items-center justify-between px-4">
-          <div className={cn(
-            "hidden md:flex items-center gap-2 transition-opacity duration-300",
-            isCollapsed ? "opacity-0 w-0" : "opacity-100"
-          )}>
-            <h1 className="text-xl font-bold whitespace-nowrap">CEMSE-IA</h1>
-          </div>
+        {/* Sidebar content container - scrollable if needed */}
+        <div className="flex flex-col h-full">
+          {/* Branding header - visible on desktop, replaced with close button on mobile */}
+          <div className="flex h-16 items-center justify-between px-4 shrink-0 border-b">
+            <div className={cn(
+              "hidden md:flex items-center gap-2 transition-opacity duration-300",
+              isCollapsed ? "opacity-0 w-0" : "opacity-100"
+            )}>
+              <h1 className="text-xl font-bold whitespace-nowrap">CEMSE-IA</h1>
+            </div>
 
-          {/* Mobile close button */}
-          <div className="flex md:hidden items-center justify-between w-full">
-            <h2 className="text-lg font-semibold">Menu</h2>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={close}
-              aria-label="Close menu"
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-
-        <nav className="space-y-1 p-4">
-          {navItems.map(item => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                  isCollapsed && "md:justify-center"
-                )}
-                aria-current={isActive ? "page" : undefined}
-                title={isCollapsed ? item.title : undefined}
+            {/* Mobile close button */}
+            <div className="flex md:hidden items-center justify-between w-full">
+              <h2 className="text-lg font-semibold">Menu</h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={close}
+                aria-label="Close menu"
               >
-                <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-                <span className={cn(
-                  "transition-opacity duration-300",
-                  isCollapsed ? "md:hidden" : "block"
-                )}>
-                  {item.title}
-                </span>
-              </Link>
-            );
-          })}
-        </nav>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Scrollable navigation */}
+          <nav className="flex-1 overflow-y-auto overflow-x-hidden space-y-1 p-4">
+            {navItems.map(item => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                    isCollapsed && "md:justify-center"
+                  )}
+                  aria-current={isActive ? "page" : undefined}
+                  title={isCollapsed ? item.title : undefined}
+                >
+                  <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  <span className={cn(
+                    "transition-opacity duration-300",
+                    isCollapsed ? "md:hidden" : "block"
+                  )}>
+                    {item.title}
+                  </span>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
       </aside>
     </>
   );
