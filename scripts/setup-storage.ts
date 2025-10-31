@@ -51,6 +51,13 @@ const BUCKETS: BucketConfig[] = [
     fileSizeLimit: 10485760, // 10MB
     description: "Evidence files for case reports",
   },
+  {
+    name: "library",
+    public: true,
+    allowedMimeTypes: [], // Allow all file types for library
+    fileSizeLimit: 52428800, // 50MB
+    description: "Library files for educational resources",
+  },
 ];
 
 async function createBucket(

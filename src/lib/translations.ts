@@ -1,10 +1,10 @@
-import { Role, SchoolType, ViolenceType, CaseStatus, CasePriority } from '@prisma/client';
+import { Role, SchoolType, ViolenceType, CaseStatus, CasePriority, LibraryVisibility } from '@prisma/client';
 
 /**
  * Traduce los roles del sistema al español para mostrar en la interfaz
  */
-export function translateRole(role: Role): string {
-  const roleTranslations: Record<Role, string> = {
+export function translateRole(role: Role | string): string {
+  const roleTranslations: Record<string, string> = {
     SUPER_ADMIN: 'Super Administrador',
     ADMIN: 'Administrador',
     DIRECTOR: 'Director',
@@ -18,8 +18,8 @@ export function translateRole(role: Role): string {
 /**
  * Traduce los tipos de colegio al español para mostrar en la interfaz
  */
-export function translateSchoolType(type: SchoolType): string {
-  const typeTranslations: Record<SchoolType, string> = {
+export function translateSchoolType(type: SchoolType | string): string {
+  const typeTranslations: Record<string, string> = {
     PUBLIC: 'Público',
     PRIVATE: 'Privado',
     SUBSIDIZED: 'Convenio',
@@ -105,6 +105,26 @@ export function translateCasePriority(priority: CasePriority): string {
 }
 
 /**
+ * Traduce las ubicaciones de casos al español para mostrar en la interfaz
+ */
+export function translateLocation(location: string): string {
+  const translations: Record<string, string> = {
+    CLASSROOM: 'Sala de clases',
+    HALLWAY: 'Pasillo',
+    BATHROOM: 'Baño',
+    PLAYGROUND: 'Patio de recreo',
+    CAFETERIA: 'Cafetería',
+    GYM: 'Gimnasio',
+    PARKING: 'Estacionamiento',
+    BUS: 'Bus escolar',
+    ONLINE: 'En línea/Virtual',
+    OTHER: 'Otro',
+  };
+
+  return translations[location] || location;
+}
+
+/**
  * Obtiene el badge color para cada tipo de violencia
  */
 export function getViolenceTypeBadgeColor(type: ViolenceType): string {
@@ -150,4 +170,26 @@ export function getCasePriorityBadgeColor(priority: CasePriority): string {
   };
 
   return colors[priority] || colors.MEDIUM;
+}
+
+/**
+ * Traduce la visibilidad de la biblioteca al español
+ */
+export function translateLibraryVisibility(visibility: LibraryVisibility | string): string {
+  const translations: Record<string, string> = {
+    PUBLIC: 'Público',
+    PRIVATE: 'Privado',
+  };
+  return translations[visibility] || visibility;
+}
+
+/**
+ * Obtiene el badge color para la visibilidad de la biblioteca
+ */
+export function getLibraryVisibilityBadgeColor(visibility: LibraryVisibility): string {
+  const colors: Record<LibraryVisibility, string> = {
+    PUBLIC: 'bg-green-500/10 text-green-700 border-green-500/20 dark:bg-green-500/20 dark:text-green-400 dark:border-green-500/30',
+    PRIVATE: 'bg-blue-500/10 text-blue-700 border-blue-500/20 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30',
+  };
+  return colors[visibility] || colors.PRIVATE;
 }
