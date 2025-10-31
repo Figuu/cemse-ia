@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Filter, FileText } from "lucide-react";
+import { Plus, Search, Filter, FileText, ChevronLeft, ChevronRight, Calendar, User, Building2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -212,17 +212,22 @@ export default function CasesPage() {
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto py-6 space-y-6 px-4">
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Casos de Violencia</h1>
-          <p className="text-muted-foreground">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-2">
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+              <FileText className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
+            </div>
+            <span>Casos de Violencia</span>
+          </h1>
+          <p className="text-muted-foreground text-sm sm:text-base">
             Gestiona y da seguimiento a los reportes de violencia escolar
           </p>
         </div>
         {canCreateCase && (
-          <Button onClick={handleCreateCase}>
+          <Button onClick={handleCreateCase} className="w-full sm:w-auto shrink-0">
             <Plus className="mr-2 h-4 w-4" />
             Reportar Caso
           </Button>
@@ -230,24 +235,26 @@ export default function CasesPage() {
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardHeader>
+      <Card className="border-2 shadow-sm">
+        <CardHeader className="border-b bg-muted/30">
           <CardTitle className="text-lg flex items-center gap-2">
-            <Filter className="h-5 w-5" />
+            <div className="p-1.5 rounded-md bg-primary/10">
+              <Filter className="h-4 w-4 text-primary" />
+            </div>
             Filtros
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             {/* Search */}
-            <div className="lg:col-span-2">
+            <div className="sm:col-span-2 lg:col-span-2">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                 <Input
-                  placeholder="Buscar por número de caso, víctima, agresor..."
+                  placeholder="Buscar por número, víctima, agresor..."
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 h-10"
                 />
               </div>
             </div>
@@ -257,7 +264,7 @@ export default function CasesPage() {
               value={filterViolenceType || "all"}
               onValueChange={(value) => handleFilterChange("violenceType", value)}
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-10">
                 <SelectValue placeholder="Tipo de violencia" />
               </SelectTrigger>
               <SelectContent>
@@ -275,7 +282,7 @@ export default function CasesPage() {
               value={filterStatus || "all"}
               onValueChange={(value) => handleFilterChange("status", value)}
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-10">
                 <SelectValue placeholder="Estado" />
               </SelectTrigger>
               <SelectContent>
@@ -293,7 +300,7 @@ export default function CasesPage() {
               value={filterPriority || "all"}
               onValueChange={(value) => handleFilterChange("priority", value)}
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-10">
                 <SelectValue placeholder="Prioridad" />
               </SelectTrigger>
               <SelectContent>
@@ -309,7 +316,7 @@ export default function CasesPage() {
 
           {(searchTerm || filterViolenceType || filterStatus || filterPriority) && (
             <div className="mt-4">
-              <Button variant="outline" size="sm" onClick={clearFilters}>
+              <Button variant="outline" size="sm" onClick={clearFilters} className="w-full sm:w-auto">
                 Limpiar Filtros
               </Button>
             </div>
@@ -319,19 +326,25 @@ export default function CasesPage() {
 
       {/* Cases List */}
       {loading ? (
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-32 w-full" />
-          ))}
-        </div>
+        <Card className="border-2 shadow-sm">
+          <CardContent className="p-6">
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-32 w-full rounded-md" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       ) : cases.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No se encontraron casos</h3>
-            <p className="text-muted-foreground text-center mb-4">
+        <Card className="border-2 shadow-sm">
+          <CardContent className="flex flex-col items-center justify-center py-16 px-4">
+            <div className="p-4 rounded-full bg-muted mb-4">
+              <FileText className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">No se encontraron casos</h3>
+            <p className="text-muted-foreground text-center max-w-md mb-6">
               {searchTerm || filterViolenceType || filterStatus || filterPriority
-                ? "Intenta ajustar los filtros de búsqueda"
+                ? "Intenta ajustar los filtros de búsqueda para encontrar más resultados"
                 : "No hay casos registrados aún"}
             </p>
             {canCreateCase && (
@@ -343,64 +356,90 @@ export default function CasesPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {cases.map((caseData) => (
             <Card
               key={caseData.id}
-              className="hover:shadow-md transition-shadow cursor-pointer"
+              className="hover:shadow-lg transition-all duration-200 cursor-pointer border-2 hover:border-primary/20"
               onClick={() => router.push(`/cases/${caseData.id}`)}
             >
-              <CardContent className="p-6">
-                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                  {/* Left side - Main info */}
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-lg font-semibold">
-                        {caseData.caseNumber}
-                      </h3>
-                      <Badge className={getViolenceTypeBadgeColor(caseData.violenceType)}>
-                        {translateViolenceType(caseData.violenceType)}
-                      </Badge>
-                      <Badge className={getCaseStatusBadgeColor(caseData.status)}>
-                        {translateCaseStatus(caseData.status)}
-                      </Badge>
-                      <Badge className={getCasePriorityBadgeColor(caseData.priority)}>
-                        {translateCasePriority(caseData.priority)}
-                      </Badge>
-                    </div>
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col gap-4">
+                  {/* Header with case number and badges */}
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div className="flex-1 space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 flex-wrap">
+                        <h3 className="text-lg sm:text-xl font-bold">
+                          {caseData.caseNumber}
+                        </h3>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge className={`${getViolenceTypeBadgeColor(caseData.violenceType)} text-xs font-medium border px-2.5 py-0.5`}>
+                            {translateViolenceType(caseData.violenceType)}
+                          </Badge>
+                          <Badge className={`${getCaseStatusBadgeColor(caseData.status)} text-xs font-medium border px-2.5 py-0.5`}>
+                            {translateCaseStatus(caseData.status)}
+                          </Badge>
+                          <Badge className={`${getCasePriorityBadgeColor(caseData.priority)} text-xs font-medium border px-2.5 py-0.5`}>
+                            {translateCasePriority(caseData.priority)}
+                          </Badge>
+                        </div>
+                      </div>
 
-                    <div className="text-sm text-muted-foreground space-y-1">
-                      <p>
-                        <span className="font-medium">Víctima:</span>{" "}
-                        {caseData.victimIsAnonymous
-                          ? "Anónimo"
-                          : caseData.victimName}
-                      </p>
-                      <p>
-                        <span className="font-medium">Agresor:</span>{" "}
-                        {caseData.aggressorName}
-                      </p>
-                      <p>
-                        <span className="font-medium">Fecha del incidente:</span>{" "}
-                        {formatDate(caseData.incidentDate)}
-                      </p>
-                      <p>
-                        <span className="font-medium">Colegio:</span>{" "}
-                        {caseData.school.name} ({caseData.school.code})
-                      </p>
+                      {/* Main case info */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                        <div className="space-y-2">
+                          <div className="flex items-start gap-2">
+                            <AlertTriangle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs text-muted-foreground mb-0.5">Víctima</p>
+                              <p className="text-sm font-medium">
+                                {caseData.victimIsAnonymous
+                                  ? "Anónimo"
+                                  : caseData.victimName}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <User className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs text-muted-foreground mb-0.5">Agresor</p>
+                              <p className="text-sm font-medium">{caseData.aggressorName}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-start gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs text-muted-foreground mb-0.5">Fecha del incidente</p>
+                              <p className="text-sm font-medium">{formatDate(caseData.incidentDate)}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2">
+                            <Building2 className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs text-muted-foreground mb-0.5">Colegio</p>
+                              <p className="text-sm font-medium">
+                                {caseData.school.name} <span className="text-muted-foreground">({caseData.school.code})</span>
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Right side - Meta info */}
-                  <div className="text-sm text-muted-foreground space-y-1 md:text-right">
-                    <p>
-                      <span className="font-medium">Reportado por:</span>{" "}
-                      {caseData.creator.name}
-                    </p>
-                    <p>
-                      <span className="font-medium">Fecha de reporte:</span>{" "}
-                      {formatDate(caseData.createdAt)}
-                    </p>
+                  {/* Footer with metadata */}
+                  <div className="pt-3 border-t flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs sm:text-sm text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span>
+                        <span className="font-medium">Reportado por:</span> {caseData.creator.name}
+                      </span>
+                    </div>
+                    <span>
+                      <span className="font-medium">Fecha de reporte:</span> {formatDate(caseData.createdAt)}
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -411,27 +450,62 @@ export default function CasesPage() {
 
       {/* Pagination */}
       {!loading && totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-          >
-            Anterior
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Página {currentPage} de {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-          >
-            Siguiente
-          </Button>
-        </div>
+        <Card className="border-2 shadow-sm">
+          <CardContent className="py-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-sm text-muted-foreground font-medium">
+                Mostrando página <span className="text-foreground font-semibold">{currentPage}</span> de <span className="text-foreground font-semibold">{totalPages}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="gap-1.5"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline">Anterior</span>
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className="w-10 font-medium"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="gap-1.5"
+                >
+                  <span className="hidden sm:inline">Siguiente</span>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Create Modal */}

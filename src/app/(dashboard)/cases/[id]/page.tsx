@@ -28,6 +28,9 @@ import {
   translateViolenceType,
   translateCaseStatus,
   translateCasePriority,
+  translateLocation,
+  translateRole,
+  translateSchoolType,
   getViolenceTypeBadgeColor,
   getCaseStatusBadgeColor,
   getCasePriorityBadgeColor,
@@ -296,7 +299,7 @@ export default function CaseDetailPage({
               </p>
               <p className="text-base flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
-                {caseData.customLocation || caseData.location}
+                {caseData.customLocation || translateLocation(caseData.location)}
               </p>
             </div>
           </div>
@@ -460,6 +463,7 @@ export default function CaseDetailPage({
               <p className="text-sm font-medium text-muted-foreground">Colegio</p>
               <p className="text-base">
                 {caseData.school.name} ({caseData.school.code})
+                {caseData.school.type && ` - ${translateSchoolType(caseData.school.type)}`}
               </p>
             </div>
             <div>
@@ -467,7 +471,7 @@ export default function CaseDetailPage({
                 Reportado Por
               </p>
               <p className="text-base">
-                {caseData.creator.name} ({caseData.creator.role})
+                {caseData.creator.name} ({translateRole(caseData.creator.role)})
               </p>
             </div>
           </div>
