@@ -43,7 +43,7 @@ function ChangePasswordForm() {
       const validatedData = resetPasswordSchema.parse(formData);
 
       // Send request to API
-      const response = await fetch("/api/profile/change-password", {
+      const response = await fetch("/api/auth/change-password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
