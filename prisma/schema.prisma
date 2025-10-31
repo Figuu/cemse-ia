@@ -11,26 +11,182 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model School {
+  id          String      @id @default(uuid())
+  name        String
+  code        String      @unique
+  type        SchoolType
+  address     String?
+  district    String?
+  phone       String?
+  email       String?
+
+  // Soft delete
+  isDeleted   Boolean     @default(false)
+  deletedAt   DateTime?
+  deletedBy   String?
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  users       Profile[]
+  cases       Case[]
+
+  @@index([code])
+  @@index([type])
+  @@index([isDeleted])
+}
+
 model Profile {
-  id                String   @id @default(uuid())
-  authUserId        String   @unique // Supabase auth.users.id
-  email             String   @unique
-  name              String
-  phone             String?
-  department        String?
-  pfpUrl            String?
-  biography         String?  @db.Text
-  role              Role     @default(USER)
-  forcePasswordChange Boolean @default(false)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                  String   @id @default(uuid())
+  authUserId          String   @unique // Supabase auth.users.id
+  email               String   @unique
+  name                String
+  phone               String?
+  department          String?
+  pfpUrl              String?
+  biography           String?  @db.Text
+  role                Role     @default(USER)
+  forcePasswordChange Boolean  @default(false)
+
+  // School relation
+  schoolId            String?
+  school              School?  @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+
+  // Soft delete
+  isDeleted           Boolean  @default(false)
+  deletedAt           DateTime?
+  deletedBy           String?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relations
+  casesCreated        Case[]       @relation("CaseCreator")
+  auditLogs           AuditLog[]
 
   @@index([email])
   @@index([role])
+  @@index([schoolId])
+  @@index([isDeleted])
+}
+
+model Case {
+  id                    String         @id @default(uuid())
+  caseNumber            String         @unique // Auto-generated case number
+
+  // Incident details
+  incidentDate          DateTime
+  incidentTime          String         // Time as string (HH:MM format)
+  violenceType          ViolenceType
+  description           String         @db.Text
+  location              String         // Where it happened
+  customLocation        String?        // If location is "OTHER"
+
+  // Victim information
+  victimIsAnonymous     Boolean        @default(false)
+  victimName            String
+  victimAge             Int?
+  victimGrade           String?
+
+  // Aggressor information
+  aggressorName         String
+  aggressorDescription  String?        @db.Text
+  relationshipToVictim  String?
+
+  // Witnesses and evidence
+  witnesses             String?        @db.Text
+  evidenceFiles         Json?          // Array of file URLs and metadata
+
+  // Status and tracking
+  status                CaseStatus     @default(OPEN)
+  priority              CasePriority   @default(MEDIUM)
+
+  // Relations
+  schoolId              String
+  school                School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  createdBy             String
+  creator               Profile        @relation("CaseCreator", fields: [createdBy], references: [id])
+
+  // Soft delete
+  isDeleted             Boolean        @default(false)
+  deletedAt             DateTime?
+  deletedBy             String?
+
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  @@index([schoolId])
+  @@index([status])
+  @@index([violenceType])
+  @@index([incidentDate])
+  @@index([createdBy])
+  @@index([isDeleted])
+}
+
+model AuditLog {
+  id            String       @id @default(uuid())
+  action        String       // e.g., "USER_CREATED", "CASE_UPDATED", etc.
+  entityType    String       // "User", "School", "Case", etc.
+  entityId      String       // ID of the affected entity
+  description   String?      // Human-readable description
+  changes       Json?        // Before/after data for updates
+  metadata      Json?        // Additional context
+  ipAddress     String?
+  userAgent     String?
+
+  // User who performed the action
+  userId        String
+  user          Profile      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime     @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([entityType])
+  @@index([entityId])
+  @@index([createdAt])
 }
 
 enum Role {
   SUPER_ADMIN
   ADMIN
+  DIRECTOR
+  PROFESOR
   USER
+}
+
+enum SchoolType {
+  PUBLIC
+  PRIVATE
+  SUBSIDIZED
+}
+
+enum ViolenceType {
+  PHYSICAL           // Física
+  VERBAL             // Verbal
+  PSYCHOLOGICAL      // Psicológica
+  SEXUAL             // Sexual
+  CYBERBULLYING      // Ciberacoso
+  DISCRIMINATION     // Discriminación
+  PROPERTY_DAMAGE    // Daño a propiedad
+  OTHER              // Otro
+}
+
+enum CaseStatus {
+  OPEN               // Abierto
+  IN_PROGRESS        // En progreso
+  UNDER_REVIEW       // En revisión
+  RESOLVED           // Resuelto
+  CLOSED             // Cerrado
+  ARCHIVED           // Archivado
+}
+
+enum CasePriority {
+  LOW                // Baja
+  MEDIUM             // Media
+  HIGH               // Alta
+  URGENT             // Urgente
 }
