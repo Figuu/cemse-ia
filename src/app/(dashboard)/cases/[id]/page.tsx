@@ -324,18 +324,18 @@ export default function CaseDetailPage({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Nombre</p>
-              <p className="text-base">
+              <div className="text-base flex items-center gap-2">
                 {caseData.victimIsAnonymous ? (
                   <>
-                    {caseData.victimName}{" "}
-                    <Badge variant="outline" className="ml-2">
+                    <span>{caseData.victimName}</span>
+                    <Badge variant="outline">
                       Anónimo
                     </Badge>
                   </>
                 ) : (
-                  caseData.victimName
+                  <span>{caseData.victimName}</span>
                 )}
-              </p>
+              </div>
             </div>
             {caseData.victimAge && (
               <div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ViolenceType, CaseStatus, CasePriority } from "@prisma/client";
+import { useAuth } from "@/context/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -64,6 +65,7 @@ export function CaseModal({
   schoolId,
   onSuccess,
 }: CaseModalProps) {
+  const { profile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -174,50 +176,82 @@ export function CaseModal({
     setLoading(true);
 
     try {
-      // Prepare data
+      // Validate required fields before submission
+      if (!formData.description.trim() || formData.description.length < 10) {
+        toast({
+          title: "Error de validación",
+          description: "La descripción debe tener al menos 10 caracteres",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (!formData.victimName.trim()) {
+        toast({
+          title: "Error de validación",
+          description: "El nombre de la víctima es requerido",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (!formData.aggressorName.trim()) {
+        toast({
+          title: "Error de validación",
+          description: "El nombre del agresor es requerido",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (!formData.incidentTime || !/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(formData.incidentTime)) {
+        toast({
+          title: "Error de validación",
+          description: "La hora del incidente debe tener formato HH:MM",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Prepare data (without evidenceFiles initially)
       const submitData: any = {
         incidentDate: formData.incidentDate,
         incidentTime: formData.incidentTime,
         violenceType: formData.violenceType,
-        description: formData.description,
+        description: formData.description.trim(),
         location: formData.location,
         customLocation:
-          formData.location === "OTHER" ? formData.customLocation : null,
+          formData.location === "OTHER" ? formData.customLocation?.trim() || null : null,
         victimIsAnonymous: formData.victimIsAnonymous,
-        victimName: formData.victimName,
+        victimName: formData.victimName.trim() || (formData.victimIsAnonymous ? "Anónimo" : ""),
         victimAge: formData.victimAge ? parseInt(formData.victimAge) : null,
-        victimGrade: formData.victimGrade || null,
-        aggressorName: formData.aggressorName,
-        aggressorDescription: formData.aggressorDescription || null,
-        relationshipToVictim: formData.relationshipToVictim || null,
-        witnesses: formData.witnesses || null,
+        victimGrade: formData.victimGrade?.trim() || null,
+        aggressorName: formData.aggressorName.trim(),
+        aggressorDescription: formData.aggressorDescription?.trim() || null,
+        relationshipToVictim: formData.relationshipToVictim?.trim() || null,
+        witnesses: formData.witnesses?.trim() || null,
         status: formData.status,
         priority: formData.priority,
-        evidenceFiles: uploadedFiles,
+        evidenceFiles: uploadedFiles, // Include already uploaded files if editing
       };
 
       if (!caseData && schoolId) {
         submitData.schoolId = schoolId;
       }
 
-      // If there are new files to upload, upload them first
-      if (selectedFiles.length > 0 && !caseData) {
-        // Note: We can't upload files yet without a case ID
-        // In a real implementation, you might want to:
-        // 1. Create the case first with a temporary ID
-        // 2. Upload files with that ID
-        // 3. Update the case with file URLs
-        // For now, we'll include this note in the upload
-        toast({
-          title: "Nota",
-          description:
-            "Los archivos se subirán después de crear el caso. Esta funcionalidad se completará en la próxima actualización.",
-        });
+      // Only include customLocation if location is "OTHER"
+      if (formData.location !== "OTHER") {
+        delete submitData.customLocation;
       }
 
       const url = caseData ? `/api/cases/${caseData.id}` : "/api/cases";
       const method = caseData ? "PATCH" : "POST";
 
+      // Step 1: Create or update the case
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -227,7 +261,79 @@ export function CaseModal({
       const data = await response.json();
 
       if (!response.ok) {
+        // If there are validation details, format them nicely
+        if (data.details && Array.isArray(data.details)) {
+          const errorMessages = data.details.map((issue: any) => {
+            const field = issue.path.join('.');
+            return `${field}: ${issue.message}`;
+          }).join('\n');
+          throw new Error(`${data.error || "Error de validación"}:\n${errorMessages}`);
+        }
         throw new Error(data.error || "Error al guardar el caso");
+      }
+
+      // Step 2: If there are new files to upload and this is a new case, upload them
+      if (!caseData && selectedFiles.length > 0 && data.id) {
+        const formDataForUpload = new FormData();
+        selectedFiles.forEach((file) => {
+          formDataForUpload.append('files', file);
+        });
+
+        const uploadResponse = await fetch(`/api/cases/${data.id}/evidence`, {
+          method: 'POST',
+          body: formDataForUpload,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadData = await uploadResponse.json();
+          // Update the case with the uploaded file URLs
+          const updatedEvidenceFiles = [...uploadedFiles, ...uploadData.files];
+          
+          const updateResponse = await fetch(`/api/cases/${data.id}`, {
+            method: 'PATCH',
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ evidenceFiles: updatedEvidenceFiles }),
+          });
+
+          if (!updateResponse.ok) {
+            console.error('Error updating case with evidence files');
+            // Don't fail the whole operation if file update fails
+          }
+        } else {
+          console.error('Error uploading evidence files');
+          // Don't fail the whole operation if file upload fails
+        }
+      }
+
+      // Step 3: If editing and there are new files, upload them
+      if (caseData && selectedFiles.length > 0) {
+        const formDataForUpload = new FormData();
+        selectedFiles.forEach((file) => {
+          formDataForUpload.append('files', file);
+        });
+
+        const uploadResponse = await fetch(`/api/cases/${caseData.id}/evidence`, {
+          method: 'POST',
+          body: formDataForUpload,
+        });
+
+        if (uploadResponse.ok) {
+          const uploadData = await uploadResponse.json();
+          // Update the case with the uploaded file URLs
+          const updatedEvidenceFiles = [...uploadedFiles, ...uploadData.files];
+          
+          const updateResponse = await fetch(`/api/cases/${caseData.id}`, {
+            method: 'PATCH',
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ evidenceFiles: updatedEvidenceFiles }),
+          });
+
+          if (!updateResponse.ok) {
+            console.error('Error updating case with evidence files');
+          }
+        } else {
+          console.error('Error uploading evidence files');
+        }
       }
 
       toast({

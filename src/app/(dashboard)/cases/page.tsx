@@ -90,7 +90,8 @@ export default function CasesPage() {
           router.push("/dashboard");
           return;
         }
-        setProfile(data);
+        // The API returns { success: true, profile: ... }, so extract the profile
+        setProfile(data.profile || data);
       })
       .catch((error) => {
         console.error("Error fetching profile:", error);
@@ -155,9 +156,10 @@ export default function CasesPage() {
   };
 
   const handleFilterChange = (type: string, value: string) => {
-    if (type === "violenceType") setFilterViolenceType(value);
-    if (type === "status") setFilterStatus(value);
-    if (type === "priority") setFilterPriority(value);
+    const actualValue = value === "all" ? "" : value;
+    if (type === "violenceType") setFilterViolenceType(actualValue);
+    if (type === "status") setFilterStatus(actualValue);
+    if (type === "priority") setFilterPriority(actualValue);
     setCurrentPage(1);
   };
 
@@ -182,6 +184,24 @@ export default function CasesPage() {
                         profile?.role === "ADMIN" ||
                         profile?.role === "SUPER_ADMIN";
 
+  // For directors and teachers, they must have a school assigned
+  const canActuallyCreateCase = canCreateCase && 
+    ((profile?.role === "DIRECTOR" || profile?.role === "PROFESOR") 
+      ? !!profile?.schoolId 
+      : true);
+
+  const handleCreateCase = () => {
+    if (canActuallyCreateCase) {
+      setShowCreateModal(true);
+    } else {
+      toast({
+        title: "Error",
+        description: "Debes tener un colegio asignado para crear casos",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (!profile) {
     return (
       <div className="container mx-auto py-6 space-y-6">
@@ -202,7 +222,7 @@ export default function CasesPage() {
           </p>
         </div>
         {canCreateCase && (
-          <Button onClick={() => setShowCreateModal(true)}>
+          <Button onClick={handleCreateCase}>
             <Plus className="mr-2 h-4 w-4" />
             Reportar Caso
           </Button>
@@ -234,14 +254,14 @@ export default function CasesPage() {
 
             {/* Violence Type Filter */}
             <Select
-              value={filterViolenceType}
+              value={filterViolenceType || "all"}
               onValueChange={(value) => handleFilterChange("violenceType", value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Tipo de violencia" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos los tipos</SelectItem>
+                <SelectItem value="all">Todos los tipos</SelectItem>
                 {Object.values(ViolenceType).map((type) => (
                   <SelectItem key={type} value={type}>
                     {translateViolenceType(type)}
@@ -252,14 +272,14 @@ export default function CasesPage() {
 
             {/* Status Filter */}
             <Select
-              value={filterStatus}
+              value={filterStatus || "all"}
               onValueChange={(value) => handleFilterChange("status", value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Estado" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos los estados</SelectItem>
+                <SelectItem value="all">Todos los estados</SelectItem>
                 {Object.values(CaseStatus).map((status) => (
                   <SelectItem key={status} value={status}>
                     {translateCaseStatus(status)}
@@ -270,14 +290,14 @@ export default function CasesPage() {
 
             {/* Priority Filter */}
             <Select
-              value={filterPriority}
+              value={filterPriority || "all"}
               onValueChange={(value) => handleFilterChange("priority", value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Prioridad" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas las prioridades</SelectItem>
+                <SelectItem value="all">Todas las prioridades</SelectItem>
                 {Object.values(CasePriority).map((priority) => (
                   <SelectItem key={priority} value={priority}>
                     {translateCasePriority(priority)}
@@ -315,7 +335,7 @@ export default function CasesPage() {
                 : "No hay casos registrados aún"}
             </p>
             {canCreateCase && (
-              <Button onClick={() => setShowCreateModal(true)}>
+              <Button onClick={handleCreateCase}>
                 <Plus className="mr-2 h-4 w-4" />
                 Reportar Primer Caso
               </Button>
@@ -415,11 +435,11 @@ export default function CasesPage() {
       )}
 
       {/* Create Modal */}
-      {showCreateModal && (
+      {showCreateModal && profile && (
         <CaseModal
           open={showCreateModal}
           onOpenChange={setShowCreateModal}
-          schoolId={profile.schoolId}
+          schoolId={profile.schoolId || undefined}
           onSuccess={fetchCases}
         />
       )}

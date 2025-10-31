@@ -12,7 +12,7 @@ const createCaseSchema = z.object({
   violenceType: z.nativeEnum(ViolenceType),
   description: z.string().min(10, 'La descripción debe tener al menos 10 caracteres'),
   location: z.string().min(1, 'La ubicación es requerida'),
-  customLocation: z.string().optional(),
+  customLocation: z.string().nullable().optional(),
   victimIsAnonymous: z.boolean().default(false),
   victimName: z.string().min(1, 'El nombre de la víctima es requerido'),
   victimAge: z.number().int().positive().optional(),

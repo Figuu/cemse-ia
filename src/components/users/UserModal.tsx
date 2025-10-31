@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Role, SchoolType } from "@prisma/client";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -82,7 +82,7 @@ export function UserModal({
   });
 
   // Determine available roles based on current user's role
-  const getAvailableRoles = (): Role[] => {
+  const availableRoles = useMemo((): Role[] => {
     if (profile?.role === "SUPER_ADMIN") {
       return ["SUPER_ADMIN", "ADMIN", "DIRECTOR", "PROFESOR", "USER"];
     } else if (profile?.role === "ADMIN") {
@@ -91,9 +91,7 @@ export function UserModal({
       return ["PROFESOR"];
     }
     return ["USER"];
-  };
-
-  const availableRoles = getAvailableRoles();
+  }, [profile?.role]);
 
   // Check if school selection is required
   const isSchoolRequired = ["DIRECTOR", "PROFESOR"].includes(formData.role);
@@ -128,6 +126,8 @@ export function UserModal({
 
   // Load user data when editing
   useEffect(() => {
+    if (!open) return;
+    
     if (user) {
       setFormData({
         id: user.id,
