@@ -36,6 +36,15 @@ export async function GET(
         biography: true,
         role: true,
         forcePasswordChange: true,
+        schoolId: true,
+        school: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            type: true,
+          },
+        },
         createdAt: true,
         updatedAt: true,
       },
@@ -182,6 +191,7 @@ export async function PATCH(
         pfpUrl: validatedData.pfpUrl,
         role: validatedData.role,
         forcePasswordChange: validatedData.forcePasswordChange,
+        ...(validatedData.schoolId !== undefined && { schoolId: validatedData.schoolId }),
       },
       select: {
         id: true,
@@ -194,6 +204,15 @@ export async function PATCH(
         biography: true,
         role: true,
         forcePasswordChange: true,
+        schoolId: true,
+        school: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            type: true,
+          },
+        },
         createdAt: true,
         updatedAt: true,
       },
@@ -290,14 +309,31 @@ export async function DELETE(
     }
 
     // Super Admin can delete anyone
-    // Admin can only delete regular users
-    if (currentProfile.role === "ADMIN" && targetUser.role !== "USER") {
+    // Admin can only delete DIRECTOR, PROFESOR, and USER roles
+    if (currentProfile.role === "ADMIN" && !["DIRECTOR", "PROFESOR", "USER"].includes(targetUser.role)) {
       return NextResponse.json(
         {
-          error: "Solo puedes eliminar usuarios con rol USER",
+          error: "Solo puedes eliminar usuarios con rol DIRECTOR, PROFESOR o USER",
         },
         { status: 403 }
       );
+    }
+
+    // Director can only delete PROFESOR in their school
+    if (currentProfile.role === "DIRECTOR") {
+      const targetProfile = await prisma.profile.findUnique({
+        where: { authUserId: targetUser.authUserId },
+        select: { schoolId: true, role: true },
+      });
+
+      if (targetProfile?.role !== "PROFESOR" || targetProfile.schoolId !== currentProfile.schoolId) {
+        return NextResponse.json(
+          {
+            error: "Solo puedes eliminar profesores de tu colegio",
+          },
+          { status: 403 }
+        );
+      }
     }
 
     // Delete user
