@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { ViolenceType, CaseStatus, CasePriority } from "@prisma/client";
-import { useAuth } from "@/context/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -65,7 +64,6 @@ export function CaseModal({
   schoolId,
   onSuccess,
 }: CaseModalProps) {
-  const { profile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -428,8 +426,8 @@ export function CaseModal({
                   </SelectTrigger>
                   <SelectContent>
                     {Object.values(ViolenceType).map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {translateViolenceType(type)}
+                      <SelectItem key={type as string} value={type as string}>
+                        {translateViolenceType(type as ViolenceType)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -453,8 +451,8 @@ export function CaseModal({
                   </SelectTrigger>
                   <SelectContent>
                     {Object.values(CasePriority).map((priority) => (
-                      <SelectItem key={priority} value={priority}>
-                        {translateCasePriority(priority)}
+                      <SelectItem key={priority as string} value={priority as string}>
+                        {translateCasePriority(priority as CasePriority)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -811,8 +809,8 @@ export function CaseModal({
                 </SelectTrigger>
                 <SelectContent>
                   {Object.values(CaseStatus).map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {translateCaseStatus(status)}
+                    <SelectItem key={status as string} value={status as string}>
+                      {translateCaseStatus(status as CaseStatus)}
                     </SelectItem>
                   ))}
                 </SelectContent>

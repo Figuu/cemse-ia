@@ -18,7 +18,7 @@ export async function POST(
       return authResult.response;
     }
 
-    const { user, profile } = extractAuthData(authResult);
+    const { profile } = extractAuthData(authResult);
 
     // Check permissions - only DIRECTOR, PROFESOR, ADMIN, SUPER_ADMIN can upload evidence
     if (!['DIRECTOR', 'PROFESOR', 'ADMIN', 'SUPER_ADMIN'].includes(profile.role)) {
