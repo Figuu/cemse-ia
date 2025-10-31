@@ -112,6 +112,7 @@ export default function DashboardPage() {
             profile={profile}
             school={schoolData}
             users={schoolData.users || []}
+            metrics={schoolData.metrics}
           />
         );
       case "USER":

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -19,10 +20,17 @@ import {
   MapPin,
   Phone,
   Mail,
+  BarChart3,
+  FileText,
+  AlertCircle,
+  TrendingUp,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 import { translateSchoolType, getSchoolTypeBadgeColor, translateRole, getRoleBadgeColor } from "@/lib/translations";
 import { Role, SchoolType } from "@prisma/client";
+import { CaseMetricsCharts } from "@/components/metrics/CaseMetricsCharts";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface SchoolInfo {
   id: string;
@@ -53,9 +61,10 @@ interface SchoolDashboardProps {
   };
   school: SchoolInfo;
   users: UserInfo[];
+  metrics?: any;
 }
 
-export function SchoolDashboard({ profile, school, users }: SchoolDashboardProps) {
+export function SchoolDashboard({ profile, school, users, metrics }: SchoolDashboardProps) {
   const getInitials = (name: string) => {
     if (!name) return "??";
     return name
@@ -190,6 +199,95 @@ export function SchoolDashboard({ profile, school, users }: SchoolDashboardProps
           </CardContent>
         </Card>
       </div>
+
+      {/* Case Metrics Section */}
+      {metrics && (
+        <div className="space-y-6">
+          {/* Metrics Summary Cards */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Total de Casos
+                </CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{metrics.totalCases || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  Todos los reportes
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Casos Abiertos
+                </CardTitle>
+                <AlertCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{metrics.openCases || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  Pendientes de resolución
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  En Progreso
+                </CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{metrics.inProgressCases || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  En seguimiento
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Resueltos
+                </CardTitle>
+                <AlertCircle className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{metrics.resolvedCases || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  Casos cerrados
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Metrics Charts */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Gráficas de Reportes
+              </CardTitle>
+              <CardDescription>
+                Visualización gráfica de las métricas de reportes del colegio
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CaseMetricsCharts
+                casesByStatus={metrics.casesByStatus}
+                casesByViolenceType={metrics.casesByViolenceType}
+                casesByPriority={metrics.casesByPriority}
+                casesOverTime={metrics.casesOverTime}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Quick Actions Card */}
